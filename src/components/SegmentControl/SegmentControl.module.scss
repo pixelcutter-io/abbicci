@@ -1,0 +1,121 @@
+@use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
+
+.control {
+  --l-h: var(--s-big);
+  --l-inset: var(--s-uxs);
+  --l-radius: calc(var(--l-h) / 2);
+  --l-c-bg: var(--c-accent-ghost);
+  --l-c-indicator: var(--c-accent);
+  --l-c-label: var(--c-accent);
+  --l-c-label-checked: var(--c-light);
+
+  // Set by SegmentControl.tsx from the checked option
+  --l-indicator-x: var(--l-inset);
+  --l-indicator-w: 0;
+
+  min-width: 0;
+  display: inline-flex;
+  position: relative;
+  margin: 0;
+  padding: var(--l-inset);
+  border: none;
+  border-radius: calc(var(--l-radius) + var(--l-inset));
+  background: var(--l-c-bg);
+}
+
+// Sliding indicator under the checked option
+.control::after {
+  content: '';
+  pointer-events: none;
+  opacity: 0;
+  width: var(--l-indicator-w);
+  display: block;
+  position: absolute;
+  top: var(--l-inset);
+  bottom: var(--l-inset);
+  left: var(--l-indicator-x);
+  z-index: var(--z-index-0);
+  border-radius: var(--l-radius);
+  background: var(--l-c-indicator);
+  box-shadow: var(--sw-dp4);
+  transition: var(--transition-035);
+}
+
+.hasValue::after {
+  opacity: 1;
+}
+
+// Option
+.option {
+  cursor: pointer;
+  min-width: fit-content;
+  min-height: var(--l-h);
+  display: flex;
+  position: relative;
+  z-index: var(--z-index-1);
+  justify-content: center;
+  align-items: center;
+  gap: var(--s-xs);
+  padding-inline: var(--s-df);
+  border-radius: var(--l-radius);
+  transition: var(--transition-025);
+
+  @include utils.prevent-text-selection;
+
+  @include media.media(sm) {
+    padding-inline: var(--s-xxl);
+  }
+}
+
+// Invisible but focusable and announced; covers the whole option.
+.input {
+  appearance: none;
+  cursor: pointer;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+}
+
+.option:has(.input:focus-visible) {
+  @include utils.focus-visible($color: var(--c-dark));
+}
+
+.icon,
+.option .label {
+  pointer-events: none;
+  fill: var(--l-c-label);
+  white-space: nowrap;
+  color: var(--l-c-label);
+  transition: var(--transition-025);
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+// If checked
+.checked .icon,
+.checked .label {
+  --l-c-label: var(--l-c-label-checked);
+}
+
+@include media.media(noTouch) {
+  .option:not(.checked, .disabled):hover {
+    background: color-mix(in oklch, var(--c-accent), transparent 78%);
+  }
+}
+
+// If disabled
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.disabled .input {
+  cursor: not-allowed;
+}

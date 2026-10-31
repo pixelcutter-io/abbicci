@@ -1,0 +1,20 @@
+// Prevent text selection
+@mixin prevent-text-selection {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+// Focus visible
+@mixin focus-visible(
+  $radius: false,
+  $color: var(--c-accent),
+  $width: 0.1875rem,
+  $offset: 0.1875rem
+) {
+  @if $radius {
+    border-radius: $radius;
+  }
+
+  outline: $width solid $color;
+  outline-offset: $offset;
+}

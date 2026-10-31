@@ -1,0 +1,88 @@
+@use '@/styles/mixins/media';
+
+.dialog {
+  overflow: auto;
+  width: 100%;
+  max-width: var(--w-max-xxs);
+  height: 100dvh;
+  position: fixed;
+  margin-left: auto;
+  padding: var(--s-xxl);
+  background: var(--c-body);
+  box-shadow: var(--sw-dp64);
+  inset: 0 0 0 auto;
+
+  @include media.media(sm) {
+    max-width: var(--w-max-xxs);
+  }
+}
+
+.dialog::backdrop {
+  background: var(--c-backdrop);
+}
+
+.dialog[open] {
+  animation: slide-in 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.dialog[open]::backdrop {
+  animation: fade-in 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+// Set by Settings.tsx while the exit animation runs, before dialog.close().
+.dialog[data-closing] {
+  animation: slide-out 0.25s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+}
+
+.dialog[data-closing]::backdrop {
+  animation: fade-out 0.25s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+}
+
+@keyframes slide-in {
+  from {
+    translate: 100% 0;
+  }
+
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes slide-out {
+  from {
+    translate: 0 0;
+  }
+
+  to {
+    translate: 100% 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open],
+  .dialog[open]::backdrop,
+  .dialog[data-closing],
+  .dialog[data-closing]::backdrop {
+    animation: none;
+  }
+}

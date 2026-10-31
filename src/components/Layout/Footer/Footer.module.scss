@@ -1,0 +1,17 @@
+@use '@/styles/mixins/utils';
+
+.footer {
+  padding: var(--s-sm) var(--s-df);
+}
+
+.link {
+  border-radius: var(--s-uxs);
+}
+
+.link:focus {
+  outline: none;
+}
+
+.link:focus-visible {
+  @include utils.focus-visible($color: var(--c-dark));
+}

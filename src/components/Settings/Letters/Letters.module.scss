@@ -1,0 +1,63 @@
+@use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+  gap: var(--s-xxs);
+}
+
+.item {
+  --l-c-bg: var(--c-accent-ghost);
+  --l-c-icon: var(--c-accent);
+
+  cursor: pointer;
+  width: 100%;
+  min-width: var(--s-touch);
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas: 'input';
+  place-items: center;
+  border-radius: var(--s-df);
+  background: var(--l-c-bg);
+  transition: var(--transition-025);
+  aspect-ratio: 1;
+}
+
+// Visually hidden but still focusable and announced.
+.input {
+  appearance: none;
+  cursor: pointer;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  grid-area: input;
+  margin: 0;
+}
+
+.icon {
+  pointer-events: none;
+  grid-area: input;
+  fill: var(--l-c-icon);
+  transition: var(--transition-025);
+}
+
+.item:has(.input:checked) {
+  --l-c-bg: var(--c-accent);
+  --l-c-border: var(--c-accent);
+  --l-c-icon: var(--c-light);
+}
+
+.item:has(.input:focus-visible) {
+  @include utils.focus-visible($color: var(--c-dark));
+}
+
+.item:active {
+  scale: 0.96;
+}
+
+@include media.media(noTouch) {
+  .item:hover:has(.input:not(:checked)) {
+    --l-c-bg: color-mix(in oklch, var(--c-accent), transparent 78%);
+  }
+}

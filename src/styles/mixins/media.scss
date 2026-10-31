@@ -1,0 +1,32 @@
+@use 'sass:map';
+
+$breakpoints-map: (
+  sm: 768px,
+  md: 1024px,
+  lg: 1280px,
+  xl: 1440px,
+  xxl: 1920px,
+);
+$breakpoints: sm, md, lg, xl, xxl;
+
+@mixin media($breakpoint) {
+  @if map.has-key($breakpoints-map, $breakpoint) {
+    $breakpoint-value: map.get($breakpoints-map, $breakpoint);
+
+    @media (min-width: $breakpoint-value) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == touch {
+    @media (hover: none) and (pointer: coarse) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == noTouch {
+    @media (hover: hover) and (pointer: fine) {
+      @content;
+    }
+  }
+}

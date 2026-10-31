@@ -1,0 +1,121 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--c-body);
+  font-family: var(--ff-main);
+  font-weight: var(--fw-regular);
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: var(--lh-default);
+  letter-spacing: var(--ls-main);
+  text-align: left;
+  word-spacing: var(--ws-main);
+  color: var(--c-dark);
+}
+
+@media (width >= 1920px) {
+  html,
+  body {
+    font-size: 20px;
+  }
+}
+
+body {
+  overflow: hidden auto;
+  min-height: 100dvh;
+  -webkit-overflow-scrolling: touch;
+}
+
+main {
+  min-height: 100dvh;
+  display: block;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+li {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+i,
+em,
+cite,
+address {
+  font-style: normal;
+}
+
+img {
+  border-style: none;
+}
+
+a {
+  cursor: pointer;
+  background-color: transparent;
+  text-decoration: none;
+  color: inherit;
+}
+
+b,
+strong {
+  font-weight: var(--fw-bold);
+}
+
+button {
+  font: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  color: inherit;
+}
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  appearance: auto;
+}
+
+dialog {
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+// iOS
+* {
+  -webkit-tap-highlight-color: transparent;
+}

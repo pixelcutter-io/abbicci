@@ -1,0 +1,26 @@
+:root {
+  // Transitions
+  --transition-025: all 0.25s cubic-bezier(0.215, 0.61, 0.355, 1);
+  --transition-035: all 0.35s cubic-bezier(0.215, 0.61, 0.355, 1);
+  --transition-05: all 0.5s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-025: none;
+    --transition-035: none;
+    --transition-05: none;
+  }
+}
+
+.srOnly {
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}

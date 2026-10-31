@@ -1,0 +1,20 @@
+.typo {
+  --l-fs: clamp(var(--l-fs-min), 1rem + var(--l-fs-increase), var(--l-fs-max));
+
+  font-family: var(--l-ff);
+  font-weight: var(--l-fw);
+  font-size: var(--l-fs);
+  font-style: normal;
+  line-height: var(--l-lh);
+  letter-spacing: var(--ls-main);
+  text-align: var(--l-align);
+  text-decoration: var(--l-decoration);
+  text-underline-offset: 0.2em;
+  word-spacing: var(--ws-main);
+  color: var(--l-c);
+  transition: var(--transition-025);
+}
+
+.balancer {
+  text-wrap: balance;
+}

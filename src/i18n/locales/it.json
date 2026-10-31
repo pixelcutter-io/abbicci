@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "Abbiccì"
+  },
+  "reader": {
+    "region": "Lettura",
+    "next": "Ancora!",
+    "empty": {
+      "words": "Aggiungi un'altra lettera per avere parole",
+      "sentences": "Aggiungi un'altra lettera per avere frasi",
+      "longSentences": "Aggiungi un'altra lettera per avere frasi lunghe"
+    }
+  },
+  "levels": {
+    "legend": "Livello",
+    "words": "Parole",
+    "sentences": "Frasi",
+    "longSentences": "Frasi lunghe"
+  },
+  "case": {
+    "toLower": "Passa alle lettere minuscole",
+    "toUpper": "Passa alle lettere maiuscole"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "close": "Chiudi",
+    "letters": {
+      "hint": "Seleziona le lettere che il bambino conosce",
+      "letter": "Lettera {{letter}}"
+    },
+    "stats": {
+      "title": "Con queste lettere ci sono",
+      "words": "Parole",
+      "sentences": "Frasi",
+      "longSentences": "Frasi lunghe",
+      "moreThan": "più di {{value}}"
+    },
+    "readability": {
+      "extraSpacing": "Spaziatura extra"
+    }
+  },
+  "footer": {
+    "credits": "©{{years}} Handcrafted by",
+    "newTab": "(si apre in una nuova scheda)"
+  }
+}

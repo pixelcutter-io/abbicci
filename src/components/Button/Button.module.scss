@@ -1,0 +1,165 @@
+@use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
+
+.btn {
+  // Everything scales with the button height (--l-h, set in Button.tsx)
+  --l-p-content: calc(var(--l-h) * 0.15);
+  --l-p-inline: calc((var(--l-h) * 0.5) - var(--l-p-content));
+  --l-fs-label: clamp(var(--fs-sm), calc(var(--l-h) * 0.4), var(--fs-tr));
+  --l-fs-only-icon: calc(var(--l-h) * 0.5);
+  --l-radius: calc(var(--l-h) * 0.25);
+  --l-radius-pill: calc(var(--l-h) * 0.5);
+
+  // Colors
+  --l-c-bg: var(--l-color-bg);
+  --l-c-border: var(--l-color-bg);
+  --l-c-label: var(--l-color-label);
+
+  // Hover colors
+  --l-c-hover-bg: var(--c-accent-dark);
+  --l-c-hover-border: var(--c-accent-dark);
+  --l-c-hover-label: var(--c-light);
+
+  appearance: none;
+  cursor: pointer;
+  overflow: hidden;
+  min-width: fit-content;
+  height: var(--l-h);
+  min-height: var(--l-h);
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  padding-inline: var(--l-p-inline);
+  border: 0.125rem solid var(--l-c-border);
+  border-radius: var(--l-radius);
+  background: var(--l-c-bg);
+  color: var(--l-c-label);
+  transition: var(--transition-025);
+
+  @include utils.prevent-text-selection;
+}
+
+// Snap to whole pixels where round() is supported, for crisper text
+@supports (padding: round(nearest, 1rem, 1px)) {
+  .btn {
+    --l-p-content: round(calc(var(--l-h) * 0.15), 1px);
+    --l-p-inline: round(calc((var(--l-h) * 0.5) - var(--l-p-content)), 1px);
+    --l-fs-label: clamp(
+      var(--fs-sm),
+      round(calc(var(--l-h) * 0.4), 1px),
+      var(--fs-tr)
+    );
+    --l-fs-only-icon: round(calc(var(--l-h) * 0.5), 1px);
+    --l-radius: round(calc(var(--l-h) * 0.25), 1px);
+    --l-radius-pill: round(calc(var(--l-h) * 0.5), 1px);
+  }
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.btn::-moz-focus-inner {
+  border: 0;
+}
+
+.btn:focus-visible {
+  @include utils.focus-visible($color: var(--c-dark));
+}
+
+.btn:active:not(:disabled) {
+  scale: 0.96;
+}
+
+@include media.media(noTouch) {
+  .btn:hover:not(:disabled) {
+    --l-c-bg: var(--l-c-hover-bg);
+    --l-c-border: var(--l-c-hover-border);
+    --l-c-label: var(--l-c-hover-label);
+  }
+}
+
+// Content
+.content {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: var(--l-icon-position);
+  justify-content: center;
+  align-items: center;
+  gap: var(--l-p-content);
+}
+
+.icon {
+  width: var(--l-fs-label);
+  min-width: var(--l-fs-label);
+  height: var(--l-fs-label);
+  fill: var(--l-c-label);
+  transition: var(--transition-025);
+}
+
+.label {
+  font-family: var(--ff-main);
+  font-weight: var(--fw-semi);
+  font-size: var(--l-fs-label);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: var(--l-c-label);
+  transition: var(--transition-025);
+}
+
+// Theme outline
+.outline {
+  --l-c-bg: var(--c-light);
+  --l-c-hover-bg: var(--c-accent-2);
+  --l-c-hover-border: var(--l-color-bg);
+  --l-c-hover-label: var(--l-color-label);
+}
+
+// Theme ghost
+.ghost {
+  --l-c-bg: color-mix(in oklch, var(--l-color-bg), transparent 88%);
+  --l-c-border: transparent;
+  --l-c-hover-bg: color-mix(in oklch, var(--l-color-bg), transparent 78%);
+  --l-c-hover-border: transparent;
+  --l-c-hover-label: var(--l-color-label);
+}
+
+// Theme text
+.text {
+  --l-c-bg: transparent;
+  --l-c-border: transparent;
+  --l-c-hover-bg: transparent;
+  --l-c-hover-border: transparent;
+  --l-c-hover-label: var(--c-accent-dark);
+
+  padding-inline: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+// Shape pill
+.pill {
+  border-radius: var(--l-radius-pill);
+}
+
+// Full width
+.full {
+  width: 100%;
+}
+
+// Only icon (needs a11y.label)
+.onlyIcon {
+  --l-fs-label: var(--l-fs-only-icon);
+
+  width: var(--l-h);
+  padding: 0;
+}
+
+// Disabled
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

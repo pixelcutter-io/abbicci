@@ -1,0 +1,41 @@
+:root {
+  // Font family
+  --ff-main: 'Lexend', system-ui, sans-serif;
+
+  // Font weight
+  --fw-bold: 700;
+  --fw-semi: 600;
+  --fw-medium: 500;
+  --fw-regular: 400;
+  --fw-light: 300;
+
+  // Font size - base 16px
+  --fs-dc: 10rem;
+  --fs-nn: 9rem;
+  --fs-eg: 8rem;
+  --fs-sp: 7rem;
+  --fs-st: 6rem;
+  --fs-qt: 5rem;
+  --fs-qr: 4rem;
+  --fs-tr: 3rem;
+  --fs-big: 2.5rem;
+  --fs-db: 2rem;
+  --fs-xxl: 1.5rem;
+  --fs-xl: 1.25rem;
+  --fs-lg: 1.125rem;
+  --fs-df: 1rem;
+  --fs-md: 0.875rem;
+  --fs-sm: 0.75rem;
+  --fs-xs: 0.625rem;
+  --fs-xxs: 0.5rem;
+
+  // Readability
+  --lh-default: 1.5;
+  --lh-tight: 1.2;
+  --ls-main: 0.05em;
+  --ws-main: 0.15em;
+
+  // "Spaziatura extra" option, applied only to the Reader text
+  --ls-extra: 0.12em;
+  --ws-extra: 0.4em;
+}
