@@ -141,3 +141,7 @@ To add a language, create `src/i18n/locales/<lang>.json` with the same keys and 
 ## Tech stack
 
 Bun (runtime, package manager, test runner, formatter, linter) · Vite · React · TypeScript (strict) · SCSS Modules · i18next · Stylelint.
+
+## License
+
+[MIT](LICENSE) © 2026 Pixelcutter

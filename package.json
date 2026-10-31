@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "App React per imparare a leggere: parole e frasi italiane con le sole lettere che il bambino conosce già.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "bunx --bun vite",
