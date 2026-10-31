@@ -1,0 +1,48 @@
+# Bun configuration.
+# `bun fmt` and `bun lint` are Bun's built-in formatter and linter. They are
+# pinned in package.json scripts (fmt: 1.4.4 stable, lint: a canary build)
+# until `bun lint` ships in a stable release.
+
+[install]
+# Text lockfile (bun.lock)
+saveTextLockfile = true
+
+[test]
+root = "./src"
+
+[fmt]
+singleQuote = true
+ignorePatterns = ["dist/"]
+
+[lint]
+ignorePatterns = ["dist/"]
+
+# With react in package.json these categories also cover the react,
+# react-hooks, react-perf and jsx-a11y plugins.
+[lint.categories]
+correctness = "error"
+suspicious = "warn"
+
+[lint.rules]
+# Not needed with the automatic JSX runtime.
+"react/react-in-jsx-scope" = "off"
+# Global stylesheets and the i18n setup are imported for their side effects.
+"import/no-unassigned-import" = ["warn", { allow = ["**/*.scss", "@/i18n"] }]
+"react/rules-of-hooks" = "error"
+"react/exhaustive-deps" = "error"
+"react/jsx-key" = "error"
+"react/button-has-type" = "error"
+"react/no-array-index-key" = "error"
+"jsx_a11y/alt-text" = "error"
+"jsx_a11y/aria-props" = "error"
+"jsx_a11y/aria-proptypes" = "error"
+"jsx_a11y/aria-role" = "error"
+"jsx_a11y/click-events-have-key-events" = "error"
+"jsx_a11y/control-has-associated-label" = "error"
+"jsx_a11y/label-has-associated-control" = "error"
+"jsx_a11y/no-noninteractive-element-interactions" = "error"
+"jsx_a11y/role-has-required-aria-props" = "error"
+"jsx_a11y/role-supports-aria-props" = "error"
+
+[lint.settings.react]
+version = "19.3"

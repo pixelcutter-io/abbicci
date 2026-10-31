@@ -1,0 +1,39 @@
+{
+  "name": "abbicci",
+  "private": true,
+  "version": "0.1.0",
+  "description": "App React per imparare a leggere: parole e frasi italiane con le sole lettere che il bambino conosce già.",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "build": "tsc -b && bunx --bun vite build",
+    "preview": "bunx --bun vite preview",
+    "test": "bun test",
+    "fmt": "bunx bun@1.4.4 fmt --no-script",
+    "lint": "bunx bun@1.4.4-canary.20261030.1 lint --no-script src && stylelint \"src/**/*.scss\"",
+    "lint:fix": "bunx bun@1.4.4-canary.20261030.1 lint --no-script --fix src && stylelint \"src/**/*.scss\" --fix",
+    "format": "bun fmt",
+    "check": "bun run lint && bun run test && bun run build"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "i18next": "^26.5.12",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.9",
+    "react-inlinesvg": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "sass": "^1.107.1",
+    "stylelint": "^17.16.0",
+    "stylelint-config-standard-scss": "^17.0.0",
+    "stylelint-order": "^8.1.2",
+    "stylelint-scss": "^7.4.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

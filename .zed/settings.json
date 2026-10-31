@@ -1,0 +1,33 @@
+// Zed project settings: format on save with Bun's formatter (`bun fmt`),
+// using the same pinned version and bunfig.toml [fmt] options as the CLI.
+{
+  // The project lints with `bun lint`, not Biome: turn off Zed's Biome
+  // extension here and keep every other language server ("...").
+  "language_servers": ["!biome", "..."],
+  "languages": {
+    "SVG": {
+      "language_servers": ["!biome", "..."]
+    }
+  },
+  "lsp": {
+    // Biome only starts where a biome.json exists, and this project has none.
+    "biome": {
+      "settings": {
+        "require_config_file": true
+      }
+    }
+  },
+  "format_on_save": "on",
+  "formatter": {
+    "external": {
+      "command": "bunx",
+      "arguments": [
+        "bun@1.4.4",
+        "fmt",
+        "--no-script",
+        "--stdin-filepath",
+        "{buffer_path}"
+      ]
+    }
+  }
+}
