@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: IAppSettings = {
   level: 'words',
   uppercase: true,
   extraSpacing: false,
+  syllables: false,
 };
 
 const LEVELS: readonly string[] = ['words', 'sentences', 'longSentences'];
@@ -40,7 +41,8 @@ const load = (): IAppSettings => {
     if (!raw) return DEFAULT_SETTINGS;
     const data: unknown = JSON.parse(raw);
     if (!isRecord(data)) return DEFAULT_SETTINGS;
-    const { letters, consonants, level, uppercase, extraSpacing } = data;
+    const { letters, consonants, level, uppercase, extraSpacing, syllables } =
+      data;
     return {
       letters: Array.isArray(letters)
         ? sortLetters(strings(letters))
@@ -55,6 +57,8 @@ const load = (): IAppSettings => {
         typeof extraSpacing === 'boolean'
           ? extraSpacing
           : DEFAULT_SETTINGS.extraSpacing,
+      syllables:
+        typeof syllables === 'boolean' ? syllables : DEFAULT_SETTINGS.syllables,
     };
   } catch {
     return DEFAULT_SETTINGS;

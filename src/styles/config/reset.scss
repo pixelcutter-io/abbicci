@@ -8,6 +8,9 @@
 
 html,
 body {
+  // No accidental double-tap zoom; pinch zoom stays available
+  touch-action: manipulation;
+  overscroll-behavior: none;
   margin: 0;
   padding: 0;
   background: var(--c-body);

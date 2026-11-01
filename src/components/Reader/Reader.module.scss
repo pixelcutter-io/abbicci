@@ -1,18 +1,30 @@
+@use '@/styles/mixins/utils' as u;
+
 .reader {
   min-height: 0;
   flex: 1;
-  padding: var(--s-xxl);
+  padding-block: var(--s-xxl);
+  padding-inline: var(--s-qr);
 }
 
 .stage {
+  overflow: auto;
   min-height: 0;
   flex: 1;
 }
 
 .text {
+  // Auto margins center it, and stay scrollable if it ever overflows
   max-width: 100%;
-  overflow-wrap: anywhere;
+  margin: auto;
   animation: appear 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+
+  @include u.prevent-text-selection;
+}
+
+.stage .text {
+  // The font size is measured in JS: it must change at once, never ease
+  transition: none;
 }
 
 .extraSpacing {

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { NavLink } from 'react-router';
 import Flex from '@/components/Flex';
 import Typo from '@/components/Typo';
 import css from './Footer.module.scss';
@@ -39,22 +40,41 @@ const Footer = () => {
     );
   };
 
+  // NavLink marks itself as the current page (aria-current) on /why
+  const renderWhy = () => {
+    return (
+      <NavLink to={'/why'} className={css.link}>
+        <Typo
+          text={t('footer.why')}
+          weight={'semi'}
+          color={'accent'}
+          size={'sm'}
+          sizeIncrease={0}
+          decoration={'underline'}
+        />
+      </NavLink>
+    );
+  };
+
+  const renderCredits = () => {
+    return (
+      <Flex width={'fit-content'} align={'baseline'} gap={0.25}>
+        <Typo
+          text={t('footer.credits', { years: getYears() })}
+          color={'dark'}
+          size={'sm'}
+          sizeIncrease={0}
+        />
+        {renderLink()}
+      </Flex>
+    );
+  };
+
   return (
-    <Flex
-      tag={'footer'}
-      justify={'center'}
-      align={'baseline'}
-      gap={0.25}
-      className={css.footer}
-    >
-      <Typo
-        text={t('footer.credits', { years: getYears() })}
-        color={'dark'}
-        size={'sm'}
-        sizeIncrease={0}
-      />
-      {renderLink()}
-    </Flex>
+    <footer className={css.footer}>
+      {renderWhy()}
+      {renderCredits()}
+    </footer>
   );
 };
 

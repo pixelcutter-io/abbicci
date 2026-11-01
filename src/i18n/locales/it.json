@@ -21,6 +21,13 @@
     "toLower": "Passa alle lettere minuscole",
     "toUpper": "Passa alle lettere maiuscole"
   },
+  "syllables": {
+    "button": "sil·la·be",
+    "label": "Sillabe"
+  },
+  "header": {
+    "home": "Torna alla pagina iniziale"
+  },
   "settings": {
     "title": "Impostazioni",
     "close": "Chiudi",
@@ -37,10 +44,18 @@
     },
     "readability": {
       "extraSpacing": "Spaziatura extra"
-    }
+    },
+    "why": "Perché Abbiccì?"
   },
   "footer": {
+    "why": "Perché",
     "credits": "©{{years}} Handcrafted by",
     "newTab": "(si apre in una nuova scheda)"
+  },
+  "why": {
+    "metaTitle": "Perché Abbiccì",
+    "title": "Perché Abbiccì",
+    "content": "In prima elementare si impara a leggere una lettera alla volta. Abbiccì ti aiuta a esercitarti a casa, con parole e frasi scritte solo con le lettere che il bambino conosce già.\n\n# Una lettera alla volta\n\nScegli tu le lettere che il bambino ha imparato, vocali comprese. Abbiccì mostra solo parole e frasi che si leggono con quelle: niente lettere sconosciute, niente frustrazione.\n\n# Parole vere, frasi che hanno senso\n\nNon ci sono sillabe senza significato. Con la sola M, per esempio, si leggono «Mamma mi ama» e «Emma ama Mimmo». Più lettere si aggiungono, più parole e frasi si possono leggere.\n\n# Una cosa alla volta\n\nUna sola parola o frase, a lettere molto grandi, al centro dello schermo. Niente disegni, suoni o punteggiatura che distraggono: il bambino si concentra solo sul leggere.\n\n# Pensata per leggere comodi\n\nIl carattere è Lexend, pensato per rendere la lettura più facile. Le lettere sono in stampatello maiuscolo, come a scuola, e puoi passare al minuscolo. Nelle impostazioni c'è anche la spaziatura extra, utile a chi fa più fatica a leggere.\n\n# Nessun account, nessun dato\n\nAbbiccì funziona nel browser: non serve registrarsi e le impostazioni restano sul tuo dispositivo.",
+    "back": "Torna a leggere"
   }
 }

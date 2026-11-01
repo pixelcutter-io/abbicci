@@ -1,4 +1,4 @@
-import { LEXICON } from '@/data/lexicon';
+import { LEXICON, OPPOSITE_ADJECTIVES } from '@/data/lexicon';
 import { TEMPLATES } from '@/data/templates';
 import type {
   TAdverbTag,
@@ -571,7 +571,15 @@ interface IContext {
   needsPersonObject: boolean;
   usedKeys: Set<string>;
   objectKeys: string[][];
+  /** Lemmas of the adjectives already said about the subject. */
+  predicates: string[];
 }
+
+const areOpposite = (a: string, b: string) =>
+  OPPOSITE_ADJECTIVES.some(
+    ([first, second]) =>
+      (first === a && second === b) || (first === b && second === a),
+  );
 
 const verbsFor = (
   vocab: IVocabulary,
@@ -699,8 +707,13 @@ const fillSlot = (
         [1, 'p'],
         [2, 'p'],
       ]);
+      // The first person singular is always written: "Io amo mamma",
+      // never "Amo mamma"; the other persons stay implied.
+      const tokens = person === 1 && number === 's' ? ['io'] : [];
+      if (tokens.some((token) => !vocab.allows(token))) throw FAIL;
+      ctx.tokens.push(...tokens);
       setSubject(ctx, {
-        tokens: [],
+        tokens,
         person,
         number,
         kinds: ['person'],
@@ -764,6 +777,11 @@ const fillSlot = (
             ),
         ),
       );
+      if (adjective.possessive && slot.qualifying) throw FAIL;
+      // "È piccola e grande": contradictory
+      if (ctx.predicates.some((lemma) => areOpposite(lemma, adjective.lemma)))
+        throw FAIL;
+      ctx.predicates.push(adjective.lemma);
       if (adjective.possessive) {
         // "Mimì è mia" yes; "io sono mio", "Mimmo è suo", "mia mamma è mia" no.
         const owner = adjective.possessive;
@@ -879,6 +897,7 @@ const runTemplate = (
     needsPersonObject: false,
     usedKeys: new Set(),
     objectKeys: [],
+    predicates: [],
   };
   for (const slot of template.slots) fillSlot(vocab, choose, ctx, slot);
   const { text, words } = render(vocab, ctx.tokens);

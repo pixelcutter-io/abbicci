@@ -1,0 +1,24 @@
+// Keep a word on one line: it never wraps between two syllables
+.word {
+  white-space: nowrap;
+}
+
+// Dashed vertical line between syllables, taller than the letters: it
+// starts below the baseline and ends above the capitals. Drawn with a
+// repeating gradient so the dashes look the same in every browser, and in
+// em so it scales with the font size chosen by the reader.
+.divider {
+  --l-dash: 0.1em;
+  --l-gap: 0.07em;
+
+  width: max(1px, 0.03em);
+  height: 1.1em;
+  display: inline-block;
+  margin-inline: 0.12em;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--c-accent) 0 var(--l-dash),
+    transparent var(--l-dash) calc(var(--l-dash) + var(--l-gap))
+  );
+  vertical-align: -0.2em;
+}

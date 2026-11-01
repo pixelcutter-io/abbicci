@@ -1,7 +1,23 @@
-@use '@/styles/mixins/utils';
+@use '@/styles/mixins/media' as m;
+@use '@/styles/mixins/utils' as u;
 
 .footer {
-  padding: var(--s-sm) var(--s-df);
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 1fr;
+  gap: var(--s-df);
+  padding-block: var(--s-df);
+  padding-inline: var(--s-xxl);
+
+  @include m.media(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.footer > *:nth-child(2) {
+  @include m.media(sm) {
+    justify-self: end;
+  }
 }
 
 .link {
@@ -13,5 +29,5 @@
 }
 
 .link:focus-visible {
-  @include utils.focus-visible($color: var(--c-dark));
+  @include u.focus-visible;
 }

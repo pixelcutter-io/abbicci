@@ -60,7 +60,7 @@
 
 // Focus ring on the track, from the keyboard only
 .track:has(.input:focus-visible) {
-  @include utils.focus-visible($color: var(--c-dark));
+  @include utils.focus-visible;
 }
 
 @include media.media(noTouch) {

@@ -1,0 +1,185 @@
+@use '@/styles/mixins/utils';
+@use '@/styles/mixins/media' as m;
+
+.text {
+  --lm: var(--l-fs-min);
+  --lfs: clamp(var(--l-fs-min), 1rem + var(--l-fs-increase), var(--l-fs-max));
+
+  font-size: var(--lfs);
+}
+
+.multiCol {
+  container: markdown-text / inline-size;
+  width: 100%;
+}
+
+.text * {
+  font-family: var(--l-ff);
+  font-weight: var(--fw-regular);
+  font-size: var(--lfs);
+  line-height: calc(1em + 0.25rem);
+  text-align: var(--l-align);
+  color: var(--l-c);
+  transition: var(--transition-025);
+
+  @include m.media(sm) {
+    text-align: var(--l-align-sm);
+  }
+
+  @include m.media(md) {
+    text-align: var(--l-align-md);
+  }
+
+  @include m.media(lg) {
+    text-align: var(--l-align-lg);
+  }
+
+  @include m.media(xl) {
+    text-align: var(--l-align-xl);
+  }
+
+  @include m.media(xxl) {
+    text-align: var(--l-align-xxl);
+  }
+}
+
+// Margin
+.text *:is(.h1, .h2, .h3, .h4, .h6):not(:first-child) {
+  margin-top: calc(var(--lm) * 4);
+}
+
+.text *:is(.h1, .h2, .h3, .h4, .h6, .p, .ul, .ol, .li):not(:last-child) {
+  margin-bottom: var(--lm);
+}
+
+// Headings
+.h1,
+.h2,
+.h3,
+.h4,
+.h6 {
+  font-family: var(--ff-heading);
+  font-weight: var(--fw-bold);
+}
+
+.h1 {
+  font-size: 2em;
+}
+
+.h2 {
+  font-size: 1.5em;
+}
+
+// Text
+.p,
+.li {
+  line-height: 1.5;
+}
+
+@container markdown-text (min-width: 45rem) {
+  .p:not(:has(> .img)) {
+    columns: var(--l-cols);
+    column-gap: 1.5em;
+  }
+}
+
+.ul > .li {
+  padding-left: 1.5rem;
+}
+
+.ul > .li::before {
+  content: var(--unicode-bullet);
+  width: 1.5rem;
+  min-width: 1.5rem;
+  height: 1.5em;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: -1.5rem;
+  font-weight: var(--fw-bold);
+  font-size: 1.25em;
+  color: var(--c-accent);
+}
+
+.ol > .li {
+  counter-increment: my-awesome-counter;
+  padding-left: 1.5rem;
+}
+
+.ol > .li::before {
+  content: counter(my-awesome-counter);
+  width: 1.5rem;
+  min-width: 1.5rem;
+  height: 1.5em;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: -1.5rem;
+  font-weight: var(--fw-bold);
+  color: var(--c-accent);
+}
+
+// Inline tags
+.a {
+  font-weight: var(--fw-bold);
+  text-decoration: underline;
+  color: var(--c-accent);
+}
+
+.a:hover {
+  color: var(--c-hover);
+}
+
+.a:active {
+  scale: 0.96;
+}
+
+.a:focus-visible {
+  @include utils.focus-visible($radius: var(--s-uxxs));
+}
+
+.em {
+  font-style: italic;
+}
+
+.strong {
+  font-weight: var(--fw-bold);
+}
+
+.hr {
+  margin-block: calc(var(--lm) * 2);
+  border: none;
+  border-top: 1px solid var(--c-dark);
+}
+
+// Image
+.img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 75vh;
+}
+
+// Code
+.code {
+  padding-inline: var(--s-uxs);
+  border-radius: var(--s-uxs);
+  background-color: var(--c-dark-4);
+  font-family: monospace;
+}
+
+// Blockquote
+.blockquote {
+  padding-left: var(--s-df);
+  padding-block: var(--s-xxs);
+  border-left: 4px solid var(--c-dark);
+}
+
+// If dropCap
+.dropCap > p:first-child::first-letter {
+  padding-top: 0.25rem;
+  padding-right: 0.5rem;
+  font-weight: var(--fw-bold);
+  font-size: 5.5em;
+  float: left;
+}

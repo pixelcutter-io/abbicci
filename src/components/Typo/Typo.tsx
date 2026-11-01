@@ -1,5 +1,11 @@
 import cx from 'clsx';
-import { type CSSProperties, createElement, useMemo } from 'react';
+import {
+  type CSSProperties,
+  createElement,
+  type ReactNode,
+  type Ref,
+  useMemo,
+} from 'react';
 import type {
   TA11y,
   TColor,
@@ -14,7 +20,8 @@ import type {
 import s from './Typo.module.scss';
 
 export interface ITypo {
-  text: string | number;
+  /** Usually a string; a component for richer content (e.g. syllables). */
+  text: ReactNode;
   tag?: TTypoTag;
   family?: TTypoFamily;
   size?: TTypoSize | [TTypoSize, TTypoSize];
@@ -26,6 +33,7 @@ export interface ITypo {
   color?: TColor;
   balancer?: boolean;
   lang?: string;
+  ref?: Ref<HTMLElement>;
   id?: string;
   className?: string;
   a11y?: TA11y;
@@ -45,6 +53,7 @@ const Typo = (props: ITypo) => {
     color = 'dark',
     balancer = false,
     lang,
+    ref,
     id,
     className,
     a11y,
@@ -69,6 +78,7 @@ const Typo = (props: ITypo) => {
         '--l-decoration': decoration,
       } satisfies CSSProperties,
       role: a11y?.role,
+      tabIndex: a11y?.tabIndex,
       htmlFor: a11y?.htmlFor,
       'aria-label': a11y?.label,
       'aria-hidden': a11y?.hidden,
@@ -89,13 +99,18 @@ const Typo = (props: ITypo) => {
     sizeMax,
     sizeMin,
     a11y?.role,
+    a11y?.tabIndex,
     a11y?.htmlFor,
     a11y?.label,
     a11y?.hidden,
     a11y?.live,
   ]);
 
-  return createElement(tag, typoProps, text);
+  const elementProps = { ref, ...typoProps };
+
+  // The ref prop is only forwarded to the element, never read while rendering
+  // eslint-disable-next-line react-hooks/refs
+  return createElement(tag, elementProps, text);
 };
 
 export default Typo;

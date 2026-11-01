@@ -19,6 +19,14 @@ const ANY_KIND: TNounKind[] = [
 ];
 
 /** Things that can be "a casa" or "in cucina" (not the sea or the sun). */
+/**
+ * Not people or animals: "La palla non è rossa" is fine, "Zoe non è bella"
+ * is unkind.
+ */
+const NOT_ALIVE: TNounKind[] = ANY_KIND.filter(
+  (kind) => kind !== 'person' && kind !== 'animal',
+);
+
 const CAN_BE_SOMEWHERE: TNounKind[] = [
   'person',
   'animal',
@@ -98,6 +106,17 @@ export const TEMPLATES: ITemplate[] = [
     ],
   },
   {
+    id: 'svoOr',
+    pattern: '[soggetto] [verbo] [oggetto] o [oggetto]',
+    slots: [
+      { slot: 'subject' },
+      { slot: 'verb', use: 'transitive' },
+      { slot: 'object' },
+      { slot: 'word', text: 'o' },
+      { slot: 'object' },
+    ],
+  },
+  {
     id: 'voo',
     pattern: '[verbo 1a/2a persona] [oggetto] o [oggetto]',
     slots: [
@@ -161,6 +180,17 @@ export const TEMPLATES: ITemplate[] = [
     ],
   },
 
+  {
+    id: 'svoTime',
+    pattern: '[soggetto] [verbo] [oggetto] oggi/sempre...',
+    slots: [
+      { slot: 'subject' },
+      { slot: 'verb', use: 'transitive' },
+      { slot: 'object' },
+      { slot: 'adverb', tags: ['time'] },
+    ],
+  },
+
   // Verbs without object
   {
     id: 'sv',
@@ -220,6 +250,28 @@ export const TEMPLATES: ITemplate[] = [
     ],
   },
 
+  {
+    id: 'psv',
+    pattern: 'io/tu e [soggetto] [verbo plurale]',
+    slots: [
+      { slot: 'pronoun', persons: [1, 2], numbers: ['s'] },
+      { slot: 'word', text: 'e' },
+      { slot: 'subject', number: 's', join: true },
+      { slot: 'verb', use: 'intransitive' },
+    ],
+  },
+  {
+    id: 'psva',
+    pattern: 'io/tu e [soggetto] [verbo plurale] insieme/sempre...',
+    slots: [
+      { slot: 'pronoun', persons: [1, 2], numbers: ['s'] },
+      { slot: 'word', text: 'e' },
+      { slot: 'subject', number: 's', join: true },
+      { slot: 'verb', use: 'intransitive' },
+      { slot: 'adverb', tags: ['together', 'manner', 'time'] },
+    ],
+  },
+
   // Places
   {
     id: 'sMotion',
@@ -264,6 +316,36 @@ export const TEMPLATES: ITemplate[] = [
     slots: [{ slot: 'pronoun' }, { slot: 'copula' }, { slot: 'place' }],
   },
 
+  {
+    id: 'svPlace',
+    pattern: '[soggetto] [verbo] [luogo]',
+    slots: [
+      { slot: 'subject' },
+      { slot: 'verb', use: 'intransitive' },
+      { slot: 'place' },
+    ],
+  },
+  {
+    id: 'pvPlace',
+    pattern: 'io/tu/noi/voi [verbo] [luogo]',
+    slots: [
+      { slot: 'pronoun' },
+      { slot: 'verb', use: 'intransitive' },
+      { slot: 'place' },
+    ],
+  },
+  {
+    id: 'ssCopPlace',
+    pattern: '[soggetto] e [soggetto] sono [luogo]',
+    slots: [
+      { slot: 'subject', number: 's', kinds: CAN_BE_SOMEWHERE },
+      { slot: 'word', text: 'e' },
+      { slot: 'subject', number: 's', join: true, kinds: CAN_BE_SOMEWHERE },
+      { slot: 'copula' },
+      { slot: 'place' },
+    ],
+  },
+
   // "Essere" + adjective or noun
   {
     id: 'sCopAdj',
@@ -297,6 +379,28 @@ export const TEMPLATES: ITemplate[] = [
       { slot: 'subject', kinds: ANY_KIND },
       { slot: 'copula' },
       { slot: 'isA' },
+    ],
+  },
+
+  {
+    id: 'sNotCopAdj',
+    pattern: '[cosa] non è [aggettivo]',
+    slots: [
+      { slot: 'subject', kinds: NOT_ALIVE },
+      { slot: 'word', text: 'non' },
+      { slot: 'copula' },
+      { slot: 'predicate', qualifying: true },
+    ],
+  },
+  {
+    id: 'sCopAdjAdj',
+    pattern: '[soggetto] è [aggettivo] e [aggettivo]',
+    slots: [
+      { slot: 'subject', kinds: ANY_KIND },
+      { slot: 'copula' },
+      { slot: 'predicate', qualifying: true },
+      { slot: 'word', text: 'e' },
+      { slot: 'predicate', qualifying: true },
     ],
   },
 

@@ -65,7 +65,7 @@
 }
 
 .btn:focus-visible {
-  @include utils.focus-visible($color: var(--c-dark));
+  @include utils.focus-visible;
 }
 
 .btn:active:not(:disabled) {

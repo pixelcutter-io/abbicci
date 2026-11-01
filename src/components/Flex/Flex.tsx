@@ -1,5 +1,10 @@
 import cx from 'clsx';
-import { type CSSProperties, createElement, type ReactNode } from 'react';
+import {
+  type CSSProperties,
+  createElement,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import type {
   TA11y,
   TFlexAlign,
@@ -12,6 +17,7 @@ import s from './Flex.module.scss';
 
 export interface IFlex {
   children: ReactNode;
+  ref?: Ref<HTMLElement>;
   tag?: THtmlTag;
   width?: 'full' | 'fit-content';
   direction?: TFlexDirection;
@@ -28,6 +34,7 @@ export interface IFlex {
 const Flex = (props: IFlex) => {
   const {
     children,
+    ref,
     tag = 'div',
     width = 'full',
     direction = 'row',
@@ -44,6 +51,7 @@ const Flex = (props: IFlex) => {
   const [rowGap, colGap] = Array.isArray(gap) ? gap : [gap, gap];
 
   const flexProps = {
+    ref,
     onClick,
     role: a11y?.role,
     tabIndex: a11y?.tabIndex,
