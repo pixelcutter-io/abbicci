@@ -13,9 +13,10 @@ Everything runs in the browser: no backend, no accounts, settings are stored in 
 - Three levels: **Parole** (words), **Frasi** (2–3 word sentences), **Frasi lunghe** (4–6 words).
 - Big **Ancora!** button: never the same item twice in a row (and it avoids the last 12 when possible). The right arrow key works too.
 - **Case button** (icon) to switch between uppercase (default) and lowercase.
+- **sil·la·be** button to show the words split in syllables (off by default). The `Syllables` component draws a small dot between syllables (mam·ma) instead of typing a hyphen, so the text has no punctuation and a word never wraps in the middle. The split follows the Italian school rules (`src/utils/syllables.ts`): double consonants split (mam-ma), clusters that can start a word stay together (pa-sta), digraphs never split (fi-glio), diphthongs stay together and hiatuses split (pa-e-se). Words whose stress breaks a diphthong (mi-o, zi-a) are listed as exceptions.
 - **Settings** panel for parents (gear button): a single grid with the 21 letters of the Italian alphabet in alphabetical order (A B C D E F G H I L M N O P Q R S T U V Z; default: the five vowels and M), how many words and sentences are available, and an **extra spacing** option. Settings saved by older versions (consonants only) get all the vowels added.
 - Readable for children with dyslexia: Lexend font, large letters, generous letter/word spacing, 1.5 line height, dark text on a cream background, no italics, no justified text.
-- No pictures, emoji, sounds, syllable splitting or punctuation — just the text to read.
+- No pictures, emoji, sounds or punctuation — just the text to read.
 
 ## Getting started
 
@@ -58,14 +59,24 @@ src/
   data/
     lexicon.ts    The vocabulary
     templates.ts  Sentence templates
-  hooks/        useA11y, useSettings (reads the settings context)
+  hooks/        useA11y, useSettings (reads the settings context),
+                useFitText, useDocumentTitle
   i18n/         i18next setup and UI translations (locales/it.json)
+  pages/        Home (the reader) and Why (about page)
   styles/       Global tokens (--c-*, --fs-*, --s-*...) and mixins
   types/        Shared types (components.ts, data.ts)
   utils/
     letters.ts    Letter sets, normalization, article onset
     generator.ts  Word/sentence generator and final validator
 ```
+
+## Pages and routing
+
+`src/App.tsx` declares the routes with react-router: `/` is the reader (`pages/Home`) and `/why` is a plain text page explaining the idea (`pages/Why`). Unknown paths go back to `/`. The settings panel links to `/why`.
+
+The reader never scrolls: the page is as tall as the screen and the text takes the largest font size that fits the free space (`useFitText`), so long sentences shrink instead of overflowing. `/why` is a normal scrolling page.
+
+Because the routes are client-side, the host must serve `index.html` for every path: `vercel.json` has the rewrite for Vercel.
 
 ## How sentences are built
 

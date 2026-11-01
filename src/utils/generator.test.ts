@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { LEXICON } from '@/data/lexicon';
+import { LEXICON, OPPOSITE_ADJECTIVES } from '@/data/lexicon';
 import { TEMPLATES } from '@/data/templates';
 import {
   enumerateSentences,
@@ -207,6 +207,72 @@ describe('regole delle frasi', () => {
           throw new Error(`Eufonia: "${sentence.text}"`);
       });
     }
+  });
+
+  test('la prima persona singolare ha sempre "io"', () => {
+    // Verb forms that can only be "io" (not "sono", also "loro sono")
+    const others = new Set(
+      LEXICON.filter(
+        (w) => w.category !== 'verb' || w.person !== 1 || w.number !== 's',
+      ).map((w) => w.text.toLowerCase()),
+    );
+    const firstPersonOnly = new Set(
+      LEXICON.filter(
+        (w) =>
+          w.category === 'verb' &&
+          w.person === 1 &&
+          w.number === 's' &&
+          !others.has(w.text.toLowerCase()),
+      ).map((w) => w.text.toLowerCase()),
+    );
+    for (const { sentence } of SAMPLES) {
+      const first = sentence.words[0].toLowerCase();
+      const second = sentence.words[1]?.toLowerCase() ?? '';
+      expect(firstPersonOnly.has(first)).toBe(false);
+      // "Ti amo" → "Io ti amo"
+      if (['mi', 'ti', 'ci', 'vi'].includes(first))
+        expect(firstPersonOnly.has(second)).toBe(false);
+    }
+  });
+
+  test('niente aggettivi opposti nella stessa frase', () => {
+    const lemmaOf = new Map(
+      LEXICON.filter((w) => w.category === 'adjective').map((w) => [
+        w.text,
+        w.lemma,
+      ]),
+    );
+    for (const { sentence } of SAMPLES) {
+      const lemmas = new Set(
+        sentence.words.flatMap((w) => lemmaOf.get(w) ?? []),
+      );
+      for (const [a, b] of OPPOSITE_ADJECTIVES)
+        if (lemmas.has(a) && lemmas.has(b))
+          throw new Error(`Opposti: "${sentence.text}"`);
+    }
+  });
+
+  test('"non è" solo per le cose, mai per persone o animali', () => {
+    const kindOf = new Map<string, string>(
+      LEXICON.flatMap((w): Array<[string, string]> =>
+        w.category === 'noun' ? [[`noun:${w.lemma}`, w.kind]] : [],
+      ),
+    );
+    const negated = SAMPLES.filter(
+      ({ sentence }) => sentence.templateId === 'sNotCopAdj',
+    );
+    expect(negated.length).toBeGreaterThan(0);
+    for (const { sentence } of negated)
+      for (const key of sentence.subjectKeys) {
+        const kind = kindOf.get(key);
+        if (!kind || kind === 'person' || kind === 'animal')
+          throw new Error(`Negazione su un essere vivente: "${sentence.text}"`);
+      }
+  });
+
+  test('"già" non finisce mai una frase', () => {
+    for (const { sentence } of SAMPLES)
+      expect(sentence.words[sentence.words.length - 1]).not.toBe('già');
   });
 
   test('con la D si usa "ed" davanti a e-', () => {

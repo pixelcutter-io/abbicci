@@ -1,6 +1,7 @@
 import cx from 'clsx';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import Button from '@/components/Button';
 import Flex from '@/components/Flex';
 import Typo from '@/components/Typo';
@@ -155,6 +156,18 @@ const Settings = (props: ISettings) => {
     );
   };
 
+  const renderWhy = () => {
+    return (
+      <Link to={'/why'} className={s.link}>
+        <Typo
+          text={t('settings.why')}
+          color={'accent'}
+          decoration={'underline'}
+        />
+      </Link>
+    );
+  };
+
   const renderDialog = () => {
     return (
       <dialog
@@ -169,6 +182,7 @@ const Settings = (props: ISettings) => {
           {renderLetters()}
           {renderReadibility()}
           {renderStats()}
+          {renderWhy()}
         </Flex>
       </dialog>
     );

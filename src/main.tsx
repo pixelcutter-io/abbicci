@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 import App from './App';
 import SettingsProvider from '@/contexts/SettingsProvider';
 import '@/i18n';
@@ -9,9 +10,11 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <SettingsProvider>
-        <App />
-      </SettingsProvider>
+      <BrowserRouter>
+        <SettingsProvider>
+          <App />
+        </SettingsProvider>
+      </BrowserRouter>
     </StrictMode>,
   );
 }

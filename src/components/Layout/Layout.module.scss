@@ -1,0 +1,19 @@
+.layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+// The reader is exactly one screen tall: the text adapts, the page never scrolls
+.reader {
+  overflow: hidden;
+  height: 100dvh;
+}
+
+.main {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 8rem;
+}

@@ -24,6 +24,7 @@ import gear from './svg/gear.svg';
 import xmark from './svg/xmark.svg';
 import lowercase from './svg/lowercase.svg';
 import uppercase from './svg/uppercase.svg';
+import syllables from './svg/syllables.svg';
 
 export {
   A,
@@ -51,6 +52,7 @@ export {
   xmark,
   lowercase,
   uppercase,
+  syllables,
 };
 
 /** Icon of each letter of the Italian alphabet. */

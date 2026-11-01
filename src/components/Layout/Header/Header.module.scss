@@ -1,12 +1,12 @@
 @use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
 
 .header {
   width: 100%;
   min-height: 5rem;
   display: grid;
-  position: sticky;
-  top: 0;
-  z-index: var(--z-index-3);
+  position: fixed;
+  flex-shrink: 0;
   grid-template-columns: 1fr auto;
   grid-template-areas:
     'logo actions'
@@ -16,7 +16,6 @@
   padding: var(--s-sm) var(--s-df);
   background-color: var(--c-body);
 
-  // Wide screens: logo | levels | actions on a single row
   @include media.media(sm) {
     grid-template-columns: 1fr auto 1fr;
     grid-template-areas: 'logo levels actions';
@@ -24,8 +23,19 @@
   }
 }
 
+// Logo
 .logo {
+  width: fit-content;
   grid-area: logo;
+  border-radius: var(--s-uxs);
+}
+
+.logo:focus {
+  outline: none;
+}
+
+.logo:focus-visible {
+  @include utils.focus-visible;
 }
 
 .levels {

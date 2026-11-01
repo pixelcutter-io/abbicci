@@ -186,7 +186,11 @@ export type TTemplateSlot =
   /** Unstressed object pronoun: mi, ti, ci, vi ("Mamma mi ama"). */
   | { slot: 'clitic' }
   /** Adjective agreeing with the subject ("Mimì è mia"). */
-  | { slot: 'predicate' }
+  | {
+      slot: 'predicate';
+      /** Only describing adjectives, no possessives ("bella e buona"). */
+      qualifying?: boolean;
+    }
   /** Predicate noun: "Il gatto è un animale". */
   | { slot: 'isA' }
   /** Place complement: "a casa", "al mare", "da nonna". */
@@ -222,4 +226,6 @@ export interface IAppSettings {
   level: TLevel;
   uppercase: boolean;
   extraSpacing: boolean;
+  /** Show words split in syllables (mam-ma). */
+  syllables: boolean;
 }

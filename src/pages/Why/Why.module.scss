@@ -1,0 +1,32 @@
+@use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
+
+// Plain text column inside the page layout
+.content {
+  width: 100%;
+  max-width: var(--w-max-xs);
+  margin-inline: auto;
+  padding: var(--s-xxl) var(--s-df) var(--s-big);
+
+  @include media.media(sm) {
+    padding-inline: var(--s-xxl);
+  }
+}
+
+.back {
+  width: fit-content;
+  border-radius: var(--s-uxs);
+}
+
+.back:focus {
+  outline: none;
+}
+
+.back:focus-visible {
+  @include utils.focus-visible;
+}
+
+// Focused by script on arrival: no ring on a heading
+.title:focus {
+  outline: none;
+}

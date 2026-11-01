@@ -1415,6 +1415,20 @@ const ADJECTIVES: IAdjective[] = [
   ...numerals('due tre quattro cinque sei sette otto nove dieci'),
 ];
 
+/**
+ * Adjectives that contradict each other: never in the same sentence
+ * ("è piccola e grande"). Lemmas, i.e. the masculine singular.
+ */
+export const OPPOSITE_ADJECTIVES: Array<[string, string]> = [
+  ['grande', 'piccolo'],
+  ['alto', 'basso'],
+  ['caldo', 'freddo'],
+  ['pulito', 'sporco'],
+  ['lento', 'veloce'],
+  ['nuovo', 'vecchio'],
+  ['pieno', 'vuoto'],
+];
+
 // ---------------------------------------------------------------------------
 // Function words
 // ---------------------------------------------------------------------------
@@ -1464,7 +1478,8 @@ const ADVERBS: IAdverb[] = [
   adverb('presto', 'time'),
   adverb('ancora', 'time'),
   adverb('spesso', 'time'),
-  adverb('già', 'time'),
+  // No tag: at the end of a sentence it sounds wrong ("trova un dottore già")
+  adverb('già'),
   adverb('qui', 'place'),
   adverb('qua', 'place'),
   adverb('lì', 'place'),

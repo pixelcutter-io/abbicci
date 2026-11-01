@@ -76,6 +76,14 @@ export type TTypoLineHeight = 'default' | 'tight';
 export type TTypoAlign = 'left' | 'center' | 'right';
 export type TTypoDecoration = 'none' | 'underline';
 
+// Layout
+/** 'reader': one screen, no scrolling. 'page': a text page that scrolls. */
+export type TLayoutTheme = 'reader' | 'page';
+
+// Responsive
+export type TBreakpointKey = 'base' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+export type TResponsive<T> = T | Partial<Record<TBreakpointKey, T>>;
+
 // A11y
 export type TA11y = {
   role?: AriaRole;

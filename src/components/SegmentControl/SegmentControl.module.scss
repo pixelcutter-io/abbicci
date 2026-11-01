@@ -81,7 +81,7 @@
 }
 
 .option:has(.input:focus-visible) {
-  @include utils.focus-visible($color: var(--c-dark));
+  @include utils.focus-visible;
 }
 
 .icon,

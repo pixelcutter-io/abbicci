@@ -1,4 +1,5 @@
 @use '@/styles/mixins/media';
+@use '@/styles/mixins/utils';
 
 .dialog {
   overflow: auto;
@@ -85,4 +86,17 @@
   .dialog[data-closing]::backdrop {
     animation: none;
   }
+}
+
+.link {
+  width: fit-content;
+  border-radius: var(--s-uxs);
+}
+
+.link:focus {
+  outline: none;
+}
+
+.link:focus-visible {
+  @include utils.focus-visible;
 }
