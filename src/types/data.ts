@@ -64,6 +64,10 @@ export interface INoun extends IBaseWord {
   placeOnly?: boolean;
   /** Hypernyms for "Il gatto è un animale" (lemmas of other nouns). */
   isA?: string[];
+  /** Soft toy that you can cuddle: bambola, orsetto. */
+  cuddly?: boolean;
+  /** You cannot touch it: parola, canzone. */
+  abstract?: boolean;
 }
 
 export interface IProperNoun extends IBaseWord {
@@ -89,6 +93,30 @@ export interface IVerb extends IBaseWord {
   with?: TNounKind[];
   /** The verb "essere" (to be). */
   copula?: boolean;
+  /** No place after it: "Elia mima lì" has no meaning. */
+  noPlace?: boolean;
+  /**
+   * Only these objects: noun lemmas or `isA` categories.
+   * "pela la mela", not "pela olio".
+   */
+  onlyObjects?: string[];
+  /** Never these objects (noun lemmas): "costruisce la casa", not "il mare". */
+  notObjects?: string[];
+  /** No mass nouns as object: "morde la mela", not "morde olio". */
+  countObjects?: boolean;
+  /** Only cuddly toys: "culla la bambola", not "culla lo scivolo". */
+  cuddlyToys?: boolean;
+  /** No abstract nouns: "prende il libro", not "prende la parola". */
+  concreteObjects?: boolean;
+  /** No object without article: "ama le mele", not "ama mele". */
+  definiteObjects?: boolean;
+  /**
+   * Animal subjects only from these noun lemmas or `isA` categories:
+   * "il merlo canta", not "il cammello canta".
+   */
+  onlyAnimals?: string[];
+  /** Never these animal subjects (noun lemmas): "il pesce cammina" no. */
+  notAnimals?: string[];
 }
 
 export interface IPossessive {
@@ -108,6 +136,13 @@ export interface IAdjective extends IBaseWord {
   possessive?: IPossessive;
   /** Numeral (due, tre...): always plural, before the noun. */
   numeral?: boolean;
+  /** Only these nouns (lemmas or `isA` categories): "matura" for fruit and vegetables. */
+  onlyNouns?: string[];
+  /**
+   * With these kinds, only after "essere": "Ivo è sporco", not "il mimo
+   * sporco".
+   */
+  predicateOnly?: TNounKind[];
 }
 
 export interface IArticle extends IBaseWord {
@@ -126,9 +161,20 @@ export interface IPronoun extends IBaseWord {
   person: TPerson;
   number: TGrammaticalNumber;
   case: TPronounCase;
+  /** Only for "lui" and "lei". */
+  gender?: TGender;
 }
 
-export type TAdverbTag = 'manner' | 'time' | 'place' | 'together' | 'negation';
+export type TAdverbTag =
+  | 'manner'
+  | 'time'
+  /** "sempre", "spesso": not at the end after an object ("prende il tè sempre"). */
+  | 'frequency'
+  | 'place'
+  /** Place that works only after "essere": "Ugo è giù", not "beve giù". */
+  | 'position'
+  | 'together'
+  | 'negation';
 
 export interface IAdverb extends IBaseWord {
   category: 'adverb';
@@ -139,6 +185,8 @@ export interface IInterjection extends IBaseWord {
   category: 'interjection';
   /** Greeting or cheer addressed to someone: "Ciao mamma". */
   greeting?: boolean;
+  /** Animal sound ("bau", "cip"): never shown as a word on its own. */
+  animalSound?: boolean;
 }
 
 export interface IFunctionWord extends IBaseWord {
@@ -173,7 +221,7 @@ export type TTemplateSlot =
       /** Allowed kinds; defaults to the kinds that can perform an action. */
       kinds?: TNounKind[];
     }
-  /** Explicit subject pronoun: io, tu, noi, voi. */
+  /** Explicit subject pronoun: io, tu, lui, lei, noi, voi. */
   | { slot: 'pronoun'; persons?: TPerson[]; numbers?: TGrammaticalNumber[] }
   /** Implied subject (io, tu, noi, voi): "Amo mamma". */
   | { slot: 'implicit' }
@@ -211,6 +259,11 @@ export interface ITemplate {
   /** Human-readable description, for whoever adds templates. */
   pattern: string;
   slots: TTemplateSlot[];
+  /**
+   * How often the template is picked (default 1). Lower for short templates
+   * with few sentences, that would fill the "Frasi" level: "Voi siete qui".
+   */
+  weight?: number;
 }
 
 // ---------------------------------------------------------------------------

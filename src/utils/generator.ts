@@ -23,8 +23,10 @@ import {
   capitalize,
   getOnset,
   isTextAllowed,
+  normalize,
   sortLetters,
   startsWithVowel,
+  VOWEL_SET,
 } from '@/utils/letters';
 
 // ---------------------------------------------------------------------------
@@ -33,20 +35,26 @@ import {
 
 /** Word count range for each level. */
 export const LEVEL_WORDS: Record<TSentenceLevel, [number, number]> = {
-  sentences: [2, 3],
-  longSentences: [4, 6],
+  sentences: [2, 4],
+  longSentences: [5, 7],
 };
 
 /** One-letter words (a, e, è, o, i) are never shown on their own. */
 const MIN_WORD_LENGTH = 2;
 
-/** Max number of combinations explored for each template. */
-const ENUMERATION_BUDGET = 8000;
+/**
+ * Max random runs for one sentence. With "f" or "r" alone there are only 2
+ * sentences: fewer runs often find none of them.
+ */
+const SENTENCE_ATTEMPTS = 5000;
 
-/** Past this many sentences per template, "più di..." is good enough. */
-const ENUMERATION_CAP = 1500;
+/** The first runs must contain the focus consonant, the others not. */
+const FOCUS_ATTEMPTS = 2000;
 
 const SENTENCE_LEVELS: TSentenceLevel[] = ['sentences', 'longSentences'];
+
+/** Share of words picked with a focus consonant (the rest is uniform). */
+const WORD_FOCUS_SHARE = 0.5;
 
 /** Words allowed to appear twice in the same sentence. */
 const REPEATABLE = new Set(
@@ -69,8 +77,23 @@ const ACTOR_KINDS: TNounKind[] = Array.from(
   ),
 );
 
+const ALIVE_KINDS = new Set<TNounKind>(['person', 'animal']);
+
+const isAlive = (kinds: readonly TNounKind[]) =>
+  kinds.every((k) => ALIVE_KINDS.has(k));
+
+/** Objects an animal subject can have: "il cane porta la palla", not "il libro". */
+const ANIMAL_OBJECT_KINDS: TNounKind[] = [
+  'person',
+  'animal',
+  'food',
+  'drink',
+  'toy',
+  'plant',
+];
+
 // ---------------------------------------------------------------------------
-// Choices: the same template code is used both to sample and to enumerate
+// Choices
 // ---------------------------------------------------------------------------
 
 class GenerationFailure extends Error {}
@@ -115,7 +138,8 @@ interface IVocabulary {
   adverbs: Extract<TWord, { category: 'adverb' }>[];
   greetings: string[];
   memo: <T>(key: string, compute: () => T) => T;
-  pools?: IPools;
+  /** Sentences found so far: the fallback when the random runs find none. */
+  found: Record<TSentenceLevel, Set<string>>;
 }
 
 const vocabularyCache = new Map<string, IVocabulary>();
@@ -136,18 +160,27 @@ const getVocabulary = (letters: Iterable<string>): IVocabulary => {
   const allowed = LEXICON.filter((w) => allows(w.text));
   const memoStore = new Map<string, unknown>();
 
+  // One word per lowercase text: in uppercase "Rosa" and "rosa" look the same.
+  // No articles, prepositions or animal sounds on their own ("di", "cip").
+  const words: string[] = [];
+  const seen = new Set<string>();
+  for (const word of allowed) {
+    if (word.category === 'article' || word.category === 'preposition')
+      continue;
+    if (word.category === 'interjection' && word.animalSound) continue;
+    const { text } = word;
+    const lower = text.toLowerCase();
+    if (text.length < MIN_WORD_LENGTH || seen.has(lower)) continue;
+    seen.add(lower);
+    words.push(text);
+  }
+
   const vocabulary: IVocabulary = {
     key,
     letters: set,
     hasD: set.has('d'),
     allows,
-    words: Array.from(
-      new Set(
-        allowed
-          .map((w) => w.text)
-          .filter((text) => text.length >= MIN_WORD_LENGTH),
-      ),
-    ),
+    words,
     nouns: byCategory(allowed, 'noun'),
     names: byCategory(allowed, 'properNoun'),
     verbs: byCategory(allowed, 'verb'),
@@ -164,6 +197,7 @@ const getVocabulary = (letters: Iterable<string>): IVocabulary => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       return memoStore.get(memoKey) as T;
     },
+    found: { sentences: new Set(), longSentences: new Set() },
   };
 
   if (vocabularyCache.size > 64) vocabularyCache.clear();
@@ -187,6 +221,10 @@ interface IPhrase {
   keys: string[];
   possessive?: boolean;
   isA?: string[];
+  /** Noun without article: "mele", "pane". */
+  bare?: boolean;
+  /** Common nouns in the phrase, for verb and adjective rules. */
+  nouns?: INoun[];
 }
 
 type TPhraseRole = 'subject' | 'object' | 'with' | 'free';
@@ -307,18 +345,67 @@ const articleFor = (
   );
 };
 
-/** Common nouns usable in a noun phrase. */
+/** Object rules of the verb ("pela la mela", not "pela olio"). */
+const fitsObject = (verb: IVerb, noun: INoun | undefined) => {
+  const { onlyObjects, notObjects } = verb;
+  if (onlyObjects) {
+    if (!noun) return false;
+    const matches =
+      onlyObjects.includes(noun.lemma) ||
+      Boolean(noun.isA?.some((t) => onlyObjects.includes(t)));
+    if (!matches) return false;
+  }
+  if (!noun) return true;
+  if (notObjects?.includes(noun.lemma)) return false;
+  if (verb.countObjects && noun.mass) return false;
+  if (verb.cuddlyToys && noun.kind === 'toy' && !noun.cuddly) return false;
+  if (verb.concreteObjects && noun.abstract) return false;
+  return true;
+};
+
+/** The noun is one of these lemmas or `isA` categories. */
+const isNounIn = (list: readonly string[], noun: INoun) =>
+  list.includes(noun.lemma) || Boolean(noun.isA?.some((t) => list.includes(t)));
+
+/** Animal rules of the verb ("il merlo canta", not "il cammello canta"). */
+const fitsAnimals = (verb: IVerb, subject: IPhrase) =>
+  (subject.nouns ?? [])
+    .filter((n) => n.kind === 'animal')
+    .every(
+      (n) =>
+        (!verb.onlyAnimals || isNounIn(verb.onlyAnimals, n)) &&
+        !verb.notAnimals?.includes(n.lemma),
+    );
+
+/**
+ * `onlyNouns` of the adjective: "la mela è matura", not "il pane è maturo".
+ * Names and pronouns have no common noun: `onlyNouns` blocks them.
+ */
+const fitsNouns = (adjective: IAdjective, phrase: IPhrase) => {
+  const { onlyNouns } = adjective;
+  if (!onlyNouns) return true;
+  const nouns = phrase.nouns ?? [];
+  return nouns.length > 0 && nouns.every((n) => isNounIn(onlyNouns, n));
+};
+
+/**
+ * Common nouns usable in a noun phrase. With a verb, only the nouns that pass
+ * its object rules: filtering before the choice keeps verbs with strict rules
+ * ("pelare") as frequent as the others.
+ */
 const commonNouns = (
   vocab: IVocabulary,
   kinds: readonly TNounKind[],
   number?: TGrammaticalNumber,
+  verb?: IVerb,
 ) =>
-  vocab.memo(`nouns|${kinds.join()}|${number ?? ''}`, () =>
+  vocab.memo(`nouns|${kinds.join()}|${number ?? ''}|${verb?.lemma ?? ''}`, () =>
     vocab.nouns.filter(
       (n) =>
         !n.placeOnly &&
         kinds.includes(n.kind) &&
-        (!number || n.number === number),
+        (!number || n.number === number) &&
+        (!verb || fitsObject(verb, n)),
     ),
   );
 
@@ -332,11 +419,12 @@ const articleNounPairs = (
   definite: boolean,
   kinds: readonly TNounKind[],
   number?: TGrammaticalNumber,
+  verb?: IVerb,
 ) =>
   vocab.memo(
-    `pairs|${definite}|${kinds.join()}|${number ?? ''}`,
+    `pairs|${definite}|${kinds.join()}|${number ?? ''}|${verb?.lemma ?? ''}`,
     (): INounChoice[] =>
-      commonNouns(vocab, kinds, number).flatMap((noun) => {
+      commonNouns(vocab, kinds, number, verb).flatMap((noun) => {
         if (!definite && (noun.mass || noun.number === 'p')) return [];
         const article = articleFor(
           vocab,
@@ -361,17 +449,30 @@ const qualifyingAdjectives = (
         !a.possessive &&
         !a.numeral &&
         agrees(a, gender, number) &&
-        fitsKinds(a.kinds, kinds),
+        fitsKinds(a.kinds, kinds) &&
+        // "Il mimo sporco" no: with a person, only after "essere".
+        !kinds.some((k) => a.predicateOnly?.includes(k)),
     ),
   );
 
+/**
+ * Possessives that agree with the noun. "suo" only with `owner3`, the number
+ * of a third person subject: "Leo ama sua mamma" yes, "Le sue cuoche
+ * corrono" no (whose?).
+ */
 const possessives = (
   vocab: IVocabulary,
   gender: TGender,
   number: TGrammaticalNumber,
+  owner3?: TGrammaticalNumber,
 ) =>
-  vocab.memo(`poss|${gender}|${number}`, () =>
-    vocab.adjectives.filter((a) => a.possessive && agrees(a, gender, number)),
+  vocab.memo(`poss|${gender}|${number}|${owner3 ?? ''}`, () =>
+    vocab.adjectives.filter(
+      (a) =>
+        a.possessive &&
+        agrees(a, gender, number) &&
+        (a.possessive.person !== 3 || a.possessive.number === owner3),
+    ),
   );
 
 /** Names usable on their own like a proper noun ("mamma"). */
@@ -405,8 +506,144 @@ const nounPhrase = (
   kinds: [noun.kind],
   keys: [`noun:${noun.lemma}`],
   isA: noun.isA,
+  nouns: [noun],
   ...extra,
 });
+
+const asNameNouns = (
+  vocab: IVocabulary,
+  kinds: readonly TNounKind[],
+  verb?: IVerb,
+) =>
+  vocab.memo(`asName|${kinds.join()}|${verb?.lemma ?? ''}`, () =>
+    commonNouns(vocab, kinds, 's', verb).filter((n) => n.asName),
+  );
+
+const familyNouns = (
+  vocab: IVocabulary,
+  kinds: readonly TNounKind[],
+  verb?: IVerb,
+) =>
+  vocab.memo(`family|${kinds.join()}|${verb?.lemma ?? ''}`, () =>
+    commonNouns(vocab, kinds, 's', verb).filter((n) => n.family),
+  );
+
+const bareNouns = (
+  vocab: IVocabulary,
+  kinds: readonly TNounKind[],
+  verb?: IVerb,
+) =>
+  vocab.memo(`bare|${kinds.join()}|${verb?.lemma ?? ''}`, () =>
+    commonNouns(vocab, kinds, undefined, verb).filter(
+      // Body parts need the article: "tocca le gambe", not "tocca gambe".
+      (n) => !n.family && n.kind !== 'body' && (n.number === 'p' || n.mass),
+    ),
+  );
+
+/** Nouns for "la mia mela": not "la mia mamma" (that is "mia mamma"). */
+const possessedNouns = (
+  vocab: IVocabulary,
+  kinds: readonly TNounKind[],
+  number?: TGrammaticalNumber,
+  verb?: IVerb,
+) =>
+  vocab.memo(
+    `possessed|${kinds.join()}|${number ?? ''}|${verb?.lemma ?? ''}`,
+    () =>
+      commonNouns(vocab, kinds, number, verb).filter(
+        (n) => !n.noPossessive && !(n.family && n.number === 's'),
+      ),
+  );
+
+/** Nouns for "due mele": plural, countable, not family. */
+const countedNouns = (
+  vocab: IVocabulary,
+  kinds: readonly TNounKind[],
+  verb?: IVerb,
+) =>
+  vocab.memo(`counted|${kinds.join()}|${verb?.lemma ?? ''}`, () =>
+    commonNouns(vocab, kinds, 'p', verb).filter((n) => !n.mass && !n.family),
+  );
+
+const objectPronouns = (vocab: IVocabulary) =>
+  vocab.memo('objectPronouns', () =>
+    vocab.pronouns.filter((p) => p.case === 'object'),
+  );
+
+/** How many words a form can choose from (0 = the form is not possible). */
+const formSize = (
+  vocab: IVocabulary,
+  form: TPhraseForm,
+  kinds: readonly TNounKind[],
+  number?: TGrammaticalNumber,
+  verb?: IVerb,
+): number => {
+  // Names and pronouns have no common noun: only `onlyObjects` blocks them.
+  const noNounOk = !verb || fitsObject(verb, undefined);
+  switch (form) {
+    case 'name':
+      return kinds.includes('person') && noNounOk ? vocab.names.length : 0;
+    case 'family':
+      return asNameNouns(vocab, kinds, verb).length;
+    case 'possFamily':
+      return familyNouns(vocab, kinds, verb).length;
+    case 'def':
+    case 'defAdj':
+      return articleNounPairs(vocab, true, kinds, number, verb).length;
+    case 'indef':
+      return articleNounPairs(vocab, false, kinds, number, verb).length;
+    case 'defPoss':
+      return possessedNouns(vocab, kinds, number, verb).length;
+    case 'numeral':
+      return countedNouns(vocab, kinds, verb).length;
+    case 'bare':
+      return verb?.definiteObjects ? 0 : bareNouns(vocab, kinds, verb).length;
+    case 'pronoun':
+      return kinds.includes('person') && noNounOk
+        ? objectPronouns(vocab).length
+        : 0;
+    default:
+      return 0;
+  }
+};
+
+/**
+ * Possible forms and their weights. A form weighs more if it has more words,
+ * with a square root: one of 5 names must not come out as often as one of
+ * 200 nouns, but names must not get lost either.
+ */
+const phraseForms = (
+  vocab: IVocabulary,
+  role: TPhraseRole,
+  kinds: readonly TNounKind[],
+  number?: TGrammaticalNumber,
+  verb?: IVerb,
+  bare?: boolean,
+) =>
+  vocab.memo(
+    `forms|${role}|${kinds.join()}|${number ?? ''}|${verb?.lemma ?? ''}|${bare ?? ''}`,
+    () => {
+      const forms: TPhraseForm[] = [];
+      const weights: number[] = [];
+      for (const form of FORMS_BY_ROLE[role]) {
+        if (number === 'p' && SINGULAR_FORMS.has(form)) continue;
+        if (number === 's' && form === 'numeral') continue;
+        if (bare !== undefined && bare !== (form === 'bare')) continue;
+        const size = formSize(vocab, form, kinds, number, verb);
+        if (size === 0) continue;
+        forms.push(form);
+        weights.push(FORM_WEIGHTS[form] * Math.sqrt(size));
+      }
+      return { forms, weights };
+    },
+  );
+
+interface IPhraseOptions {
+  /** true: only the form without article; false: never. */
+  bare?: boolean;
+  /** Number of a third person subject: allows "suo", "sua". */
+  owner3?: TGrammaticalNumber;
+}
 
 const buildPhrase = (
   vocab: IVocabulary,
@@ -415,21 +652,22 @@ const buildPhrase = (
   kinds: readonly TNounKind[],
   exclude: ReadonlySet<string>,
   number?: TGrammaticalNumber,
+  verb?: IVerb,
+  { bare, owner3 }: IPhraseOptions = {},
 ): IPhrase => {
-  const forms = FORMS_BY_ROLE[role].filter((form) => {
-    if (number === 'p' && SINGULAR_FORMS.has(form)) return false;
-    if (number === 's' && form === 'numeral') return false;
-    return true;
-  });
-  const form = choose(
-    forms,
-    forms.map((f) => FORM_WEIGHTS[f]),
+  const { forms, weights } = phraseForms(
+    vocab,
+    role,
+    kinds,
+    number,
+    verb,
+    bare,
   );
+  const form = choose(forms, weights);
 
   const phrase = ((): IPhrase => {
     switch (form) {
       case 'name': {
-        if (!kinds.includes('person')) throw FAIL;
         const name = choose(vocab.names);
         return {
           tokens: [name.text],
@@ -442,20 +680,12 @@ const buildPhrase = (
         };
       }
       case 'family': {
-        const noun = choose(
-          vocab.memo(`asName|${kinds.join()}`, () =>
-            commonNouns(vocab, kinds, 's').filter((n) => n.asName),
-          ),
-        );
+        const noun = choose(asNameNouns(vocab, kinds, verb));
         return nounPhrase(noun, [noun.text], { isA: undefined });
       }
       case 'possFamily': {
-        const noun = choose(
-          vocab.memo(`family|${kinds.join()}`, () =>
-            commonNouns(vocab, kinds, 's').filter((n) => n.family),
-          ),
-        );
-        const owner = choose(possessives(vocab, noun.gender, 's'));
+        const noun = choose(familyNouns(vocab, kinds, verb));
+        const owner = choose(possessives(vocab, noun.gender, 's', owner3));
         return nounPhrase(noun, [owner.text, noun.text], {
           possessive: true,
           isA: undefined,
@@ -464,24 +694,29 @@ const buildPhrase = (
       case 'def':
       case 'indef': {
         const { article, noun } = choose(
-          articleNounPairs(vocab, form === 'def', kinds, number),
+          articleNounPairs(vocab, form === 'def', kinds, number, verb),
         );
         return nounPhrase(noun, [article.text, noun.text]);
       }
       case 'defAdj': {
         const { article, noun } = choose(
-          articleNounPairs(vocab, true, kinds, number),
+          articleNounPairs(vocab, true, kinds, number, verb),
         );
         const adjective = choose(
-          qualifyingAdjectives(vocab, noun.gender, noun.number, [noun.kind]),
+          qualifyingAdjectives(
+            vocab,
+            noun.gender,
+            noun.number,
+            [noun.kind],
+          ).filter((a) => !a.onlyNouns || isNounIn(a.onlyNouns, noun)),
         );
         return nounPhrase(noun, [article.text, noun.text, adjective.text]);
       }
       case 'defPoss': {
-        const noun = choose(commonNouns(vocab, kinds, number));
-        if (noun.noPossessive || (noun.family && noun.number === 's'))
-          throw FAIL;
-        const owner = choose(possessives(vocab, noun.gender, noun.number));
+        const noun = choose(possessedNouns(vocab, kinds, number, verb));
+        const owner = choose(
+          possessives(vocab, noun.gender, noun.number, owner3),
+        );
         const article = articleFor(
           vocab,
           true,
@@ -495,8 +730,7 @@ const buildPhrase = (
         });
       }
       case 'numeral': {
-        const noun = choose(commonNouns(vocab, kinds, 'p'));
-        if (noun.mass || noun.family) throw FAIL;
+        const noun = choose(countedNouns(vocab, kinds, verb));
         const numeral = choose(
           vocab.memo('numerals', () =>
             vocab.adjectives.filter((a) => a.numeral),
@@ -505,20 +739,11 @@ const buildPhrase = (
         return nounPhrase(noun, [numeral.text, noun.text]);
       }
       case 'bare': {
-        const noun = choose(
-          vocab.memo(`bare|${kinds.join()}`, () =>
-            commonNouns(vocab, kinds).filter(
-              (n) => !n.family && (n.number === 'p' || n.mass),
-            ),
-          ),
-        );
-        return nounPhrase(noun, [noun.text]);
+        const noun = choose(bareNouns(vocab, kinds, verb));
+        return nounPhrase(noun, [noun.text], { bare: true });
       }
       case 'pronoun': {
-        if (!kinds.includes('person')) throw FAIL;
-        const pronoun = choose(
-          vocab.pronouns.filter((p) => p.case === 'object'),
-        );
+        const pronoun = choose(objectPronouns(vocab));
         return {
           tokens: [pronoun.text],
           person: pronoun.person,
@@ -550,6 +775,7 @@ const joinPhrases = (a: IPhrase, b: IPhrase): IPhrase => ({
   kinds: Array.from(new Set([...a.kinds, ...b.kinds])),
   keys: [...a.keys, ...b.keys],
   possessive: a.possessive || b.possessive,
+  nouns: [...(a.nouns ?? []), ...(b.nouns ?? [])],
 });
 
 // ---------------------------------------------------------------------------
@@ -573,6 +799,8 @@ interface IContext {
   objectKeys: string[][];
   /** Lemmas of the adjectives already said about the subject. */
   predicates: string[];
+  /** The last direct object: "X e Y", "X o Y" must match it. */
+  lastObject?: IPhrase;
 }
 
 const areOpposite = (a: string, b: string) =>
@@ -581,6 +809,12 @@ const areOpposite = (a: string, b: string) =>
       (first === a && second === b) || (first === b && second === a),
   );
 
+/** Object kinds of the verb for this subject: fewer if an animal acts. */
+const objectKinds = (verb: IVerb, subject: IPhrase) =>
+  subject.kinds.includes('animal')
+    ? verb.objects.filter((k) => ANIMAL_OBJECT_KINDS.includes(k))
+    : verb.objects;
+
 const verbsFor = (
   vocab: IVocabulary,
   subject: IPhrase,
@@ -588,17 +822,18 @@ const verbsFor = (
   needsPersonObject: boolean,
 ) =>
   vocab.memo(
-    `verbs|${subject.person}${subject.number}|${subject.kinds.join()}|${use}|${needsPersonObject}`,
+    `verbs|${subject.person}${subject.number}|${subject.kinds.join()}|${use}|${needsPersonObject}|${subject.nouns?.map((n) => n.lemma).join() ?? ''}`,
     () =>
       vocab.verbs.filter((v) => {
         if (v.copula) return false;
         if (v.person !== subject.person || v.number !== subject.number)
           return false;
         if (!fitsKinds(v.subjects, subject.kinds)) return false;
+        if (!fitsAnimals(v, subject)) return false;
         if (needsPersonObject && !v.objects.includes('person')) return false;
         switch (use) {
           case 'transitive':
-            return v.objects.length > 0;
+            return objectKinds(v, subject).length > 0;
           case 'intransitive':
             return Boolean(v.intransitive);
           case 'motion':
@@ -614,6 +849,8 @@ const verbsFor = (
 interface IPlaceOption {
   tokens: string[];
   key: string;
+  /** "da mamma": a visit to a person. */
+  visit: boolean;
 }
 
 const placeOptions = (vocab: IVocabulary) =>
@@ -623,9 +860,14 @@ const placeOptions = (vocab: IVocabulary) =>
       .map((n) => ({
         tokens: [...(n.at ?? '').split(' '), n.text],
         key: `noun:${n.lemma}`,
+        visit: false,
       }));
     const visits = vocab.allows('da')
-      ? personNames(vocab).map((p) => ({ tokens: ['da', p.text], key: p.key }))
+      ? personNames(vocab).map((p) => ({
+          tokens: ['da', p.text],
+          key: p.key,
+          visit: true,
+        }))
       : [];
     return [...places, ...visits];
   });
@@ -663,7 +905,13 @@ const fillSlot = (
       return;
     }
     case 'subject': {
-      const kinds = slot.kinds ?? ACTOR_KINDS;
+      const slotKinds = slot.kinds ?? ACTOR_KINDS;
+      // "X e Y": both alive or both not ("Ivo e la tuta sono qui" no).
+      // Filter before the choice, so pair templates do not fail more often.
+      const first = slot.join ? ctx.subject : undefined;
+      const kinds = first
+        ? slotKinds.filter((k) => isAlive([k]) === isAlive(first.kinds))
+        : slotKinds;
       const phrase = buildPhrase(
         vocab,
         choose,
@@ -685,7 +933,8 @@ const fillSlot = (
         vocab.pronouns.filter(
           (p) =>
             p.case === 'subject' &&
-            p.person !== 3 &&
+            // "lui" and "lei" yes, "loro" no.
+            (p.person !== 3 || p.number === 's') &&
             (!slot.persons || slot.persons.includes(p.person)) &&
             (!slot.numbers || slot.numbers.includes(p.number)),
         ),
@@ -695,6 +944,7 @@ const fillSlot = (
         tokens: [pronoun.text],
         person: pronoun.person,
         number: pronoun.number,
+        gender: pronoun.gender,
         kinds: ['person'],
         keys: pronounKeys(pronoun.person, pronoun.number),
       });
@@ -743,15 +993,30 @@ const fillSlot = (
     }
     case 'object': {
       const verb = requireVerb(ctx);
+      const subject = requireSubject(ctx);
+      // "X e Y", "X o Y": both alive or both things ("Teo o il piatto" no),
+      // both with article or both without ("i meli e palme" no).
+      const previous = ctx.lastObject;
+      const verbKinds = objectKinds(verb, subject);
+      const kinds = previous
+        ? verbKinds.filter((k) => isAlive([k]) === isAlive(previous.kinds))
+        : verbKinds;
       const phrase = buildPhrase(
         vocab,
         choose,
         'object',
-        verb.objects,
+        kinds,
         ctx.usedKeys,
+        undefined,
+        verb,
+        {
+          bare: previous ? Boolean(previous.bare) : undefined,
+          owner3: subject.person === 3 ? subject.number : undefined,
+        },
       );
       ctx.tokens.push(...phrase.tokens);
       addObject(ctx, phrase.keys);
+      ctx.lastObject = phrase;
       return;
     }
     case 'clitic': {
@@ -775,7 +1040,7 @@ const fillSlot = (
                 agrees(a, subject.gender, subject.number) &&
                 fitsKinds(a.kinds, subject.kinds),
             ),
-        ),
+        ).filter((a) => fitsNouns(a, subject)),
       );
       if (adjective.possessive && slot.qualifying) throw FAIL;
       // "È piccola e grande": contradictory
@@ -809,7 +1074,15 @@ const fillSlot = (
       return;
     }
     case 'place': {
-      const place = choose(placeOptions(vocab));
+      if (ctx.verb?.noPlace) throw FAIL;
+      // "da mamma" only for people, with "essere" or a motion verb:
+      // not "La mucca canta da Andrea", "Le banane sono da Elia".
+      const subject = requireSubject(ctx);
+      const canVisit =
+        subject.kinds.every((k) => k === 'person') &&
+        (!ctx.verb || Boolean(ctx.verb.motion));
+      const places = placeOptions(vocab);
+      const place = choose(canVisit ? places : places.filter((p) => !p.visit));
       if (ctx.usedKeys.has(place.key)) throw FAIL;
       ctx.tokens.push(...place.tokens);
       ctx.usedKeys.add(place.key);
@@ -818,7 +1091,17 @@ const fillSlot = (
     case 'with': {
       if (!vocab.allows('con')) throw FAIL;
       const kinds = slot.kinds ?? requireVerb(ctx).with ?? [];
-      const phrase = buildPhrase(vocab, choose, 'with', kinds, ctx.usedKeys);
+      const subject = requireSubject(ctx);
+      const phrase = buildPhrase(
+        vocab,
+        choose,
+        'with',
+        kinds,
+        ctx.usedKeys,
+        undefined,
+        undefined,
+        { owner3: subject.person === 3 ? subject.number : undefined },
+      );
       ctx.tokens.push('con', ...phrase.tokens);
       for (const key of phrase.keys) ctx.usedKeys.add(key);
       return;
@@ -830,7 +1113,8 @@ const fillSlot = (
           a.tags?.some(
             (tag: TAdverbTag) =>
               slot.tags.includes(tag) &&
-              (tag !== 'together' || subject.number === 'p'),
+              (tag !== 'together' || subject.number === 'p') &&
+              (tag !== 'place' || !ctx.verb?.noPlace),
           ),
         ),
       );
@@ -876,10 +1160,9 @@ const render = (vocab: IVocabulary, tokens: string[]) => {
     }
     return token;
   });
-  // No repeated content words: "Mia è mia", "Mimi mimi".
-  const content = words
-    .map((w) => w.toLowerCase())
-    .filter((w) => !REPEATABLE.has(w));
+  // No repeated content words, also when only an accent differs:
+  // "Mia è mia", "Mimi mimi", "Mimi Mimì".
+  const content = words.map(normalize).filter((w) => !REPEATABLE.has(w));
   if (new Set(content).size !== content.length) throw FAIL;
 
   const text = capitalize(words.join(' '));
@@ -937,144 +1220,60 @@ export const isSentenceAllowed = (
 };
 
 // ---------------------------------------------------------------------------
-// Enumeration (to count, and to pick without repetitions)
+// Random runs
 // ---------------------------------------------------------------------------
 
-interface ITemplatePool {
-  template: ITemplate;
-  sentences: Record<TSentenceLevel, string[]>;
-  complete: boolean;
-}
+const TEMPLATE_WEIGHTS = TEMPLATES.map((t) => t.weight ?? 1);
 
-interface IPools {
-  templates: ITemplatePool[];
-  all: Record<TSentenceLevel, string[]>;
-  complete: boolean;
-}
-
-/**
- * Explores every combination of a template like an odometer: each run replays
- * the template along the current path of choices, then advances the last
- * choice that still has alternatives.
- */
-const enumerateTemplate = (
-  vocab: IVocabulary,
-  template: ITemplate,
-  budget = ENUMERATION_BUDGET,
-): ITemplatePool => {
-  const found: Record<TSentenceLevel, Set<string>> = {
-    sentences: new Set(),
-    longSentences: new Set(),
-  };
-  const path: number[] = [];
-  const sizes: number[] = [];
-  let complete = false;
-
-  for (let run = 0; run < budget; run++) {
-    let depth = 0;
-    const choose: TChooser = (options) => {
-      if (options.length === 0) throw FAIL;
-      if (depth >= path.length) {
-        path.push(0);
-        sizes.push(options.length);
-      } else sizes[depth] = options.length;
-      return options[path[depth++]];
-    };
-
-    try {
-      const sentence = runTemplate(vocab, template, choose);
-      const level = levelOf(sentence);
-      if (level) found[level].add(sentence.text);
-    } catch (error) {
-      if (error !== FAIL) throw error;
-    }
-    if (found.sentences.size + found.longSentences.size >= ENUMERATION_CAP)
-      break;
-
-    path.length = depth;
-    sizes.length = depth;
-    while (
-      path.length > 0 &&
-      path[path.length - 1] + 1 >= sizes[sizes.length - 1]
-    ) {
-      path.pop();
-      sizes.pop();
-    }
-    if (path.length === 0) {
-      complete = true;
-      break;
-    }
-    path[path.length - 1]++;
+/** Runs a random template with random choices. Null if the run fails. */
+const randomRun = (vocab: IVocabulary, choose: TChooser) => {
+  try {
+    const template = choose(TEMPLATES, TEMPLATE_WEIGHTS);
+    const sentence = runTemplate(vocab, template, choose);
+    const level = levelOf(sentence);
+    if (level) vocab.found[level].add(sentence.text);
+    return level ? { sentence, level } : null;
+  } catch (error) {
+    if (error !== FAIL) throw error;
+    return null;
   }
-
-  return {
-    template,
-    complete,
-    sentences: {
-      sentences: Array.from(found.sentences),
-      longSentences: Array.from(found.longSentences),
-    },
-  };
-};
-
-const getPools = (vocab: IVocabulary): IPools => {
-  if (vocab.pools) return vocab.pools;
-  const templates = TEMPLATES.map((t) => enumerateTemplate(vocab, t));
-  const union = (level: TSentenceLevel) =>
-    Array.from(new Set(templates.flatMap((t) => t.sentences[level])));
-  vocab.pools = {
-    templates,
-    all: {
-      sentences: union('sentences'),
-      longSentences: union('longSentences'),
-    },
-    complete: templates.every((t) => t.complete),
-  };
-  return vocab.pools;
-};
-
-/** All sentences of a level (only part of them if `complete` is false). */
-export const enumerateSentences = (
-  letters: Iterable<string>,
-  level: TSentenceLevel,
-) => {
-  const pools = getPools(getVocabulary(letters));
-  return { sentences: pools.all[level], complete: pools.complete };
 };
 
 // ---------------------------------------------------------------------------
 // App API
 // ---------------------------------------------------------------------------
 
-export interface ICount {
-  count: number;
-  /** False when there are too many combinations to count them all. */
-  complete: boolean;
-}
-
-export interface IStats {
-  words: number;
-  sentences: ICount;
-  longSentences: ICount;
-}
-
 export const getWords = (letters: Iterable<string>) =>
   getVocabulary(letters).words;
 
-export const getStats = (letters: Iterable<string>): IStats => {
+/** Below this many sentences, the app says "only N sentences". */
+const FEW_SENTENCES = 6;
+
+/**
+ * Random runs to find every sentence when they are few. With "f" alone (2
+ * sentences) fewer runs can miss one.
+ */
+const FEW_CHECK_RUNS = 10_000;
+
+/**
+ * Number of sentences of the level when they are few (1 to 5), else null.
+ * Computed once per letter set.
+ */
+export const countFewSentences = (
+  letters: Iterable<string>,
+  level: TSentenceLevel,
+): number | null => {
   const vocab = getVocabulary(letters);
-  const pools = getPools(vocab);
-  return {
-    words: vocab.words.length,
-    sentences: { count: pools.all.sentences.length, complete: pools.complete },
-    longSentences: {
-      count: pools.all.longSentences.length,
-      complete: pools.complete,
-    },
-  };
+  return vocab.memo(`few|${level}`, () => {
+    const found = vocab.found[level];
+    const choose = randomChooser(Math.random);
+    for (let i = 0; i < FEW_CHECK_RUNS && found.size < FEW_SENTENCES; i++)
+      randomRun(vocab, choose);
+    return found.size > 0 && found.size < FEW_SENTENCES ? found.size : null;
+  });
 };
 
-/** Generates a random sentence (also outside the enumerated ones). */
+/** Generates a random sentence of the level, or null after `attempts` runs. */
 export const generateSentence = (
   letters: Iterable<string>,
   level: TSentenceLevel,
@@ -1082,47 +1281,65 @@ export const generateSentence = (
   attempts = 200,
 ): ISentence | null => {
   const vocab = getVocabulary(letters);
-  const pools = getPools(vocab);
-  const candidates = pools.templates.filter(
-    (t) => !t.complete || t.sentences[level].length > 0,
-  );
-  if (candidates.length === 0) return null;
-
   const choose = randomChooser(rng);
-  const weights = candidates.map((t) =>
-    Math.sqrt(t.complete ? t.sentences[level].length : ENUMERATION_BUDGET),
-  );
-
   for (let i = 0; i < attempts; i++) {
-    const { template } = choose(candidates, weights);
-    try {
-      const sentence = runTemplate(vocab, template, choose);
-      if (levelOf(sentence) === level) return sentence;
-    } catch (error) {
-      if (error !== FAIL) throw error;
-    }
+    const run = randomRun(vocab, choose);
+    if (run?.level === level) return run.sentence;
   }
   return null;
 };
+
+const hasLetter = (text: string, letter: string) =>
+  normalize(text).includes(letter);
+
+/**
+ * Letters that are taught only in groups (ch, gh, qu): never the focus, or
+ * "qui", "qua" and "ha" would fill the sentences.
+ */
+const NO_FOCUS = new Set(['h', 'q']);
+
+/** Chosen consonants that appear in at least one allowed word. */
+const focusLetters = (vocab: IVocabulary) =>
+  vocab.memo('focus', () =>
+    Array.from(vocab.letters).filter(
+      (l) =>
+        !VOWEL_SET.has(l) &&
+        !NO_FOCUS.has(l) &&
+        vocab.words.some((w) => hasLetter(w, l)),
+    ),
+  );
 
 const pickAvoiding = (
   pool: readonly string[],
   history: readonly string[],
   rng: TRng,
 ) => {
-  const current = history[history.length - 1];
   const fresh = pool.filter((s) => !history.includes(s));
   if (fresh.length > 0) return fresh[Math.floor(rng() * fresh.length)];
-  const different = pool.filter((s) => s !== current);
-  if (different.length > 0)
-    return different[Math.floor(rng() * different.length)];
+  // Everything was shown recently: skip the most recent half of the pool, so
+  // that no item comes back two steps later (no "A B A").
+  const recent = new Set<string>();
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (recent.size >= Math.ceil(pool.length / 2)) break;
+    recent.add(history[i]);
+  }
+  const older = pool.filter((s) => !recent.has(s));
+  if (older.length > 0) return older[Math.floor(rng() * older.length)];
+  // Only one item: it can only repeat.
   return pool[0] ?? null;
 };
 
 /**
- * Next word or sentence to show: never the current one (last in `history`)
- * and, when possible, none of the recently shown ones either.
+ * Next word or sentence to show: never the current one (last in `history`),
+ * unless it is the only one, and when possible none of the recent ones.
  * Returns null when there is nothing to read with these letters.
+ *
+ * Each call first picks a focus consonant with equal probability, then an
+ * item that contains it: this way a letter with few words is not lost among
+ * the letters with many words, whatever order the letters were added in.
+ * For words, only half of the calls use the focus (`WORD_FOCUS_SHARE`).
+ * Sentences come from random runs: the first `FOCUS_ATTEMPTS` runs must
+ * contain the focus consonant, the next ones can be any sentence.
  */
 export const nextItem = (
   letters: Iterable<string>,
@@ -1131,37 +1348,58 @@ export const nextItem = (
   rng: TRng = Math.random,
 ): string | null => {
   const vocab = getVocabulary(letters);
-  if (level === 'words') return pickAvoiding(vocab.words, history, rng);
-
-  const pools = getPools(vocab);
-  if (pools.all[level].length === 0) return null;
-
-  // First pick a template (weighted), then a sentence from it: this way
-  // short, rare patterns don't get lost among thousands of combinations.
   const choose = randomChooser(rng);
-  const candidates = pools.templates.filter(
-    (t) => !t.complete || t.sentences[level].length > 0,
-  );
-  const weights = candidates.map((t) =>
-    Math.sqrt(t.complete ? t.sentences[level].length : ENUMERATION_BUDGET),
-  );
 
-  for (let i = 0; i < 40; i++) {
-    const pool = choose(candidates, weights);
-    let text: string | null = null;
-    if (pool.complete) {
-      const fresh = pool.sentences[level].filter((s) => !history.includes(s));
-      if (fresh.length > 0) text = choose(fresh);
-    } else {
-      try {
-        const sentence = runTemplate(vocab, pool.template, choose);
-        if (levelOf(sentence) === level) text = sentence.text;
-      } catch (error) {
-        if (error !== FAIL) throw error;
-      }
+  if (level === 'words') {
+    const focus = focusLetters(vocab);
+    // Only half of the words use the focus: with few words per letter, the
+    // focus alone repeats the same words ("pepe" 14 times out of 300).
+    if (focus.length > 0 && rng() < WORD_FOCUS_SHARE) {
+      const letter = choose(focus);
+      const fresh = vocab.words.filter(
+        (w) => hasLetter(w, letter) && !history.includes(w),
+      );
+      if (fresh.length > 0) return choose(fresh);
     }
-    if (text && !history.includes(text)) return text;
+    return pickAvoiding(vocab.words, history, rng);
   }
 
-  return pickAvoiding(pools.all[level], history, rng);
+  // No sentence of this level with these letters: answer at once, without
+  // the 5000 runs at each call.
+  const emptyLevels = vocab.memo(
+    'emptyLevels',
+    () => new Set<TSentenceLevel>(),
+  );
+  if (emptyLevels.has(level)) return null;
+
+  // Focus letters with no sentence of this level: never the focus again, or
+  // each call wastes the first `FOCUS_ATTEMPTS` runs.
+  const deadFocus = vocab.memo(`deadFocus|${level}`, () => new Set<string>());
+  const found = vocab.found[level];
+  const focus = focusLetters(vocab).filter((l) => !deadFocus.has(l));
+  const letter = focus.length > 0 ? choose(focus) : null;
+  let letterSeen = false;
+  for (let i = 0; i < SENTENCE_ATTEMPTS; i++) {
+    if (
+      letter &&
+      i === FOCUS_ATTEMPTS &&
+      !letterSeen &&
+      !Array.from(found).some((s) => hasLetter(s, letter))
+    )
+      deadFocus.add(letter);
+    const run = randomRun(vocab, choose);
+    if (run?.level !== level) continue;
+    const { text } = run.sentence;
+    if (letter && hasLetter(text, letter)) letterSeen = true;
+    if (history.includes(text)) continue;
+    if (letter && i < FOCUS_ATTEMPTS && !hasLetter(text, letter)) continue;
+    return text;
+  }
+
+  if (found.size === 0) {
+    emptyLevels.add(level);
+    return null;
+  }
+  // All runs failed or gave recent sentences: reuse one found before.
+  return pickAvoiding(Array.from(found), history, rng);
 };

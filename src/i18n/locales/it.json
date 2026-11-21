@@ -5,10 +5,17 @@
   "reader": {
     "region": "Lettura",
     "next": "Ancora!",
+    "noLetters": "Scegli le lettere per iniziare",
     "empty": {
       "words": "Aggiungi un'altra lettera per avere parole",
       "sentences": "Aggiungi un'altra lettera per avere frasi",
       "longSentences": "Aggiungi un'altra lettera per avere frasi lunghe"
+    },
+    "few": {
+      "sentences_one": "Con queste lettere c'è solo 1 frase. Aggiungi una lettera per averne di più.",
+      "sentences_other": "Con queste lettere ci sono solo {{count}} frasi. Aggiungi una lettera per averne di più.",
+      "longSentences_one": "Con queste lettere c'è solo 1 frase lunga. Aggiungi una lettera per averne di più.",
+      "longSentences_other": "Con queste lettere ci sono solo {{count}} frasi lunghe. Aggiungi una lettera per averne di più."
     }
   },
   "levels": {
@@ -34,13 +41,6 @@
     "letters": {
       "hint": "Seleziona le lettere che il bambino conosce",
       "letter": "Lettera {{letter}}"
-    },
-    "stats": {
-      "title": "Con queste lettere ci sono",
-      "words": "Parole",
-      "sentences": "Frasi",
-      "longSentences": "Frasi lunghe",
-      "moreThan": "più di {{value}}"
     },
     "readability": {
       "extraSpacing": "Spaziatura extra"

@@ -3,6 +3,7 @@ import { LETTER_ICONS } from '@/assets/icons';
 import Icon from '@/components/Icon';
 import useSettings from '@/hooks/useSettings';
 import type { TA11y } from '@/types/components';
+import { countFewSentences } from '@/utils/generator';
 import { LETTERS, type TLetter } from '@/utils/letters';
 import css from './Letters.module.scss';
 import Flex from '@/components/Flex';
@@ -16,7 +17,7 @@ export interface ILetters {
 const Letters = (props: ILetters) => {
   const { a11y } = props;
   const { settings, toggleLetter } = useSettings();
-  const { letters } = settings;
+  const { letters, level } = settings;
   const { t } = useTranslation();
 
   const renderCheckbox = (letter: TLetter) => {
@@ -50,10 +51,25 @@ const Letters = (props: ILetters) => {
     );
   };
 
+  // Few sentences with these letters: say it under the letters.
+  const renderFew = () => {
+    if (level === 'words') return null;
+    const few = countFewSentences(letters, level);
+    if (!few) return null;
+    return (
+      <Typo
+        text={t(`reader.few.${level}`, { count: few })}
+        tag={'p'}
+        color={'dark-2'}
+      />
+    );
+  };
+
   return (
     <Flex direction={'column'} align={'stretch'} gap={1}>
       <Typo text={t('settings.letters.hint')} size={'lg'} />
       {renderList()}
+      {renderFew()}
     </Flex>
   );
 };
