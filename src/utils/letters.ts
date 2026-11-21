@@ -29,9 +29,9 @@ export const LETTERS = [
 
 export type TLetter = (typeof LETTERS)[number];
 
-export const DEFAULT_LETTERS: TLetter[] = ['a', 'e', 'i', 'm', 'o', 'u'];
+export const DEFAULT_LETTERS: TLetter[] = [];
 
-const VOWEL_SET = new Set<string>(VOWELS);
+export const VOWEL_SET: ReadonlySet<string> = new Set<string>(VOWELS);
 
 /** Lowercase, no accents: "Mimì" → "mimi", "È" → "e". */
 export const normalize = (text: string) =>

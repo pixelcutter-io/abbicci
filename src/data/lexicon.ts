@@ -52,6 +52,8 @@ const COLORFUL: TNounKind[] = [
   'plant',
   'place',
 ];
+/** Colors that sound odd on animals and food: "il gatto viola", "la torta blu". */
+const PLAIN_COLORFUL = COLORFUL.filter((k) => k !== 'animal' && k !== 'food');
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -59,7 +61,15 @@ const COLORFUL: TNounKind[] = [
 
 type TNounOptions = Pick<
   INoun,
-  'family' | 'asName' | 'mass' | 'at' | 'placeOnly' | 'isA' | 'noPossessive'
+  | 'family'
+  | 'asName'
+  | 'mass'
+  | 'at'
+  | 'placeOnly'
+  | 'isA'
+  | 'noPossessive'
+  | 'cuddly'
+  | 'abstract'
 > & {
   /** Plural gender when it changes: l'uovo → le uova. */
   pluralGender?: TGender;
@@ -107,7 +117,24 @@ const names = (gender: TGender, list: string): IProperNoun[] =>
   }));
 
 type TVerbInfo = Pick<IVerb, 'subjects' | 'objects'> &
-  Partial<Pick<IVerb, 'intransitive' | 'motion' | 'with' | 'copula'>>;
+  Partial<
+    Pick<
+      IVerb,
+      | 'intransitive'
+      | 'motion'
+      | 'with'
+      | 'copula'
+      | 'noPlace'
+      | 'onlyObjects'
+      | 'notObjects'
+      | 'countObjects'
+      | 'cuddlyToys'
+      | 'concreteObjects'
+      | 'definiteObjects'
+      | 'onlyAnimals'
+      | 'notAnimals'
+    >
+  >;
 
 const PERSONS: Array<[TPerson, TGrammaticalNumber]> = [
   [1, 's'],
@@ -140,7 +167,7 @@ const verb = (lemma: string, forms: string, info: TVerbInfo): IVerb[] => {
 const adj = (
   forms: string,
   kinds: TNounKind[],
-  extra: Pick<IAdjective, 'possessive'> = {},
+  extra: Pick<IAdjective, 'possessive' | 'onlyNouns' | 'predicateOnly'> = {},
 ): IAdjective[] => {
   const list = forms.split(' ');
   const lemma = list[0];
@@ -209,6 +236,7 @@ const pronoun = (
   person: TPerson,
   number: TGrammaticalNumber,
   pronounCase: TPronounCase,
+  gender?: TGender,
 ): IPronoun => ({
   text,
   lemma: text,
@@ -216,6 +244,7 @@ const pronoun = (
   person,
   number,
   case: pronounCase,
+  ...(gender && { gender }),
 });
 
 const adverb = (text: string, ...tags: TAdverbTag[]): IAdverb => ({
@@ -246,11 +275,11 @@ const interjections = (list: string, greeting = false): IInterjection[] =>
 const PROPER_NOUNS: IProperNoun[] = [
   ...names(
     'm',
-    'Mimmo Pippo Dino Tito Leo Ugo Nino Lino Remo Dario Mario Paolo Luca Marco Matteo Davide Pietro Fabio Bruno Gino Teo Totò Beppe Zeno Ivo Ettore Gigi Vito Pino Luigi Tommaso Filippo Elia Enea Nicola Andrea Simone Michele Lele Toni',
+    'Mimmo Pippo Dino Tito Leo Ugo Nino Lino Remo Dario Mario Paolo Luca Marco Matteo Davide Pietro Fabio Bruno Gino Teo Totò Beppe Zeno Ivo Ettore Gigi Vito Pino Luigi Tommaso Filippo Elia Enea Nicola Andrea Simone Michele Lele Toni Bobo Ciccio Dede Dodo Ennio Peppe',
   ),
   ...names(
     'f',
-    'Emma Mia Mimì Mimma Lalla Tina Nina Lola Ada Ida Anna Lea Elena Sara Lisa Rita Rosa Viola Alice Giulia Sofia Marta Irene Luna Bea Gaia Noemi Nora Zoe Dora Maria Paola Lucia Carla Laura Gemma Tea Ilaria Aurora Greta Chiara Olga Pia',
+    'Emma Mia Mimì Mimma Lalla Tina Nina Lola Ada Ida Anna Lea Elena Sara Lisa Rita Rosa Viola Alice Giulia Sofia Marta Irene Luna Bea Gaia Noemi Nora Zoe Dora Maria Paola Lucia Carla Laura Gemma Tea Ilaria Aurora Greta Chiara Olga Pia Ebe Fifì Fufi Gioia Ninni Pippi Rea Susi Isa Eva Vivi Zazà Aria',
   ),
 ];
 
@@ -264,10 +293,12 @@ const PEOPLE = [
     ['papà', 'papà', 'm'],
     ['nonna', 'nonne', 'f'],
     ['nonno', 'nonni', 'm'],
-  ]),
-  ...nouns('person', { family: true }, [
+    ['babbo', 'babbi', 'm'],
     ['zia', 'zie', 'f'],
     ['zio', 'zii', 'm'],
+  ]),
+  ...nouns('person', { asName: true }, [['bebè', 'bebè', 'm']]),
+  ...nouns('person', { family: true }, [
     ['sorella', 'sorelle', 'f'],
     ['fratello', 'fratelli', 'm'],
     ['cugina', 'cugine', 'f'],
@@ -297,6 +328,7 @@ const PEOPLE = [
     ['fata', 'fate', 'f'],
     ['mago', 'maghi', 'm'],
     ['pirata', 'pirati', 'm'],
+    ['eroe', 'eroi', 'm'],
     ['astronauta', 'astronauti', 'm'],
     ['uomo', 'uomini', 'm', { noPossessive: true }],
     ['donna', 'donne', 'f', { noPossessive: true }],
@@ -307,6 +339,7 @@ const PEOPLE = [
     ['postino', 'postini', 'm'],
     ['contadino', 'contadini', 'm'],
     ['marinaio', 'marinai', 'm'],
+    ['nano', 'nani', 'm'],
   ]),
 ];
 
@@ -359,6 +392,9 @@ const ANIMALS = [
     ['cammello', 'cammelli', 'm'],
     ['polpo', 'polpi', 'm'],
     ['granchio', 'granchi', 'm'],
+    ['ara', 'are', 'f'],
+    ['bue', 'buoi', 'm'],
+    ['boa', 'boa', 'm'],
   ]),
   ...nouns('animal', { isA: ['uccello', 'animale'] }, [
     ['gallo', 'galli', 'm'],
@@ -412,6 +448,9 @@ const FOOD = [
     ['olio', null, 'm'],
     ['marmellata', null, 'f'],
     ['mais', null, 'm'],
+    ['cacao', null, 'm'],
+    ['cocco', null, 'm'],
+    ['pepe', null, 'm'],
   ]),
   ...nouns('food', {}, [
     ['noce', 'noci', 'f'],
@@ -431,6 +470,7 @@ const FOOD = [
     ['budino', 'budini', 'm'],
     ['merenda', 'merende', 'f'],
     ['patatina', 'patatine', 'f'],
+    ['cece', 'ceci', 'm'],
   ]),
 ];
 
@@ -462,28 +502,29 @@ const TOYS = [
     ['palla', 'palle', 'f'],
     ['pallina', 'palline', 'f'],
     ['pallone', 'palloni', 'm'],
-    ['bambola', 'bambole', 'f'],
+    ['bambola', 'bambole', 'f', { cuddly: true }],
     ['trenino', 'trenini', 'm'],
     ['macchinina', 'macchinine', 'f'],
     ['aquilone', 'aquiloni', 'm'],
-    ['pupazzo', 'pupazzi', 'm'],
-    ['orsetto', 'orsetti', 'm'],
+    ['pupazzo', 'pupazzi', 'm', { cuddly: true }],
+    ['orsetto', 'orsetti', 'm', { cuddly: true }],
     ['trottola', 'trottole', 'f'],
     ['dado', 'dadi', 'm'],
     ['palloncino', 'palloncini', 'm'],
     ['robot', 'robot', 'm'],
     ['cubo', 'cubi', 'm'],
     ['birillo', 'birilli', 'm'],
-    ['burattino', 'burattini', 'm'],
-    ['marionetta', 'marionette', 'f'],
+    ['burattino', 'burattini', 'm', { cuddly: true }],
+    ['marionetta', 'marionette', 'f', { cuddly: true }],
+    ['pupa', 'pupe', 'f', { cuddly: true }],
   ]),
 ];
 
 const MUSIC = [
   ...nouns('music', {}, [
     ['strumento', 'strumenti', 'm'],
-    ['canzone', 'canzoni', 'f'],
-    ['musica', null, 'f', { mass: true }],
+    ['canzone', 'canzoni', 'f', { abstract: true }],
+    ['musica', null, 'f', { mass: true, abstract: true }],
     ['campanello', 'campanelli', 'm'],
   ]),
   ...nouns('music', { isA: ['strumento'] }, [
@@ -506,9 +547,9 @@ const READING = nouns('reading', {}, [
   ['giornale', 'giornali', 'm'],
   ['quaderno', 'quaderni', 'm'],
   ['poesia', 'poesie', 'f'],
-  ['nome', 'nomi', 'm'],
-  ['parola', 'parole', 'f'],
-  ['frase', 'frasi', 'f'],
+  ['nome', 'nomi', 'm', { abstract: true }],
+  ['parola', 'parole', 'f', { abstract: true }],
+  ['frase', 'frasi', 'f', { abstract: true }],
   ['fumetto', 'fumetti', 'm'],
   ['biglietto', 'biglietti', 'm'],
   ['mappa', 'mappe', 'f'],
@@ -579,11 +620,16 @@ const THINGS = [
     ['mattone', 'mattoni', 'm'],
     ['cestino', 'cestini', 'm'],
     ['barattolo', 'barattoli', 'm'],
+    ['orario', 'orari', 'm'],
+    ['pipa', 'pipe', 'f'],
+    ['ciuccio', 'ciucci', 'm'],
+    ['asso', 'assi', 'm'],
   ]),
   ...nouns('thing', { mass: true }, [
     ['sapone', null, 'm'],
     ['carta', null, 'f'],
     ['colla', null, 'f'],
+    ['oro', null, 'm'],
   ]),
 ];
 
@@ -598,6 +644,7 @@ const VEHICLES = nouns('vehicle', {}, [
   ['autobus', 'autobus', 'm'],
   ['moto', 'moto', 'f'],
   ['camion', 'camion', 'm'],
+  ['ufo', 'ufo', 'm'],
   ['trattore', 'trattori', 'm'],
   ['razzo', 'razzi', 'm'],
   ['monopattino', 'monopattini', 'm'],
@@ -644,6 +691,7 @@ const NATURE = [
     ['pioggia', null, 'f'],
     ['sabbia', null, 'f'],
     ['vento', null, 'm'],
+    ['aria', null, 'f'],
   ]),
 ];
 
@@ -711,12 +759,25 @@ const BODY = [
     ['orecchio', 'orecchie', 'm'],
     ['dito', 'dita', 'm'],
     ['braccio', 'braccia', 'm'],
+    ['osso', 'ossa', 'm'],
   ]),
 ];
 
 // ---------------------------------------------------------------------------
 // Verbs (present indicative: io, tu, lui/lei, noi, voi, loro)
 // ---------------------------------------------------------------------------
+
+/** Animals that do not walk: they swim, fly or crawl. */
+const NOT_WALKING = [
+  'pesce',
+  'delfino',
+  'balena',
+  'polpo',
+  'foca',
+  'boa',
+  'farfalla',
+  'ape',
+];
 
 const VERBS: IVerb[] = [
   ...verb('essere', 'sono sei è siamo siete sono', {
@@ -729,15 +790,18 @@ const VERBS: IVerb[] = [
   ...verb('amare', 'amo ami ama amiamo amate amano', {
     subjects: ANIMATE,
     objects: except('body'),
+    definiteObjects: true,
   }),
   ...verb('mimare', 'mimo mimi mima mimiamo mimate mimano', {
     subjects: PERSON,
     objects: ['person', 'animal', 'vehicle'],
     intransitive: true,
+    noPlace: true,
   }),
   ...verb('imitare', 'imito imiti imita imitiamo imitate imitano', {
     subjects: ANIMATE,
     objects: ANIMATE,
+    onlyAnimals: ['pappagallo', 'scimmia'],
   }),
   ...verb('ammirare', 'ammiro ammiri ammira ammiriamo ammirate ammirano', {
     subjects: PERSON,
@@ -755,6 +819,7 @@ const VERBS: IVerb[] = [
   ...verb('mangiare', 'mangio mangi mangia mangiamo mangiate mangiano', {
     subjects: ANIMATE,
     objects: ['food'],
+    notObjects: ['olio', 'pepe'],
     intransitive: true,
   }),
   ...verb('bere', 'bevo bevi beve beviamo bevete bevono', {
@@ -804,6 +869,7 @@ const VERBS: IVerb[] = [
   ...verb('prendere', 'prendo prendi prende prendiamo prendete prendono', {
     subjects: ANIMATE,
     objects: ['food', 'drink', 'toy', 'thing', 'clothes', 'reading', 'music'],
+    concreteObjects: true,
   }),
   ...verb('avere', 'ho hai ha abbiamo avete hanno', {
     subjects: ANIMATE,
@@ -817,6 +883,7 @@ const VERBS: IVerb[] = [
       'food',
       'music',
     ],
+    concreteObjects: true,
   }),
   ...verb('volere', 'voglio vuoi vuole vogliamo volete vogliono', {
     subjects: ANIMATE,
@@ -835,10 +902,13 @@ const VERBS: IVerb[] = [
   ...verb('lavare', 'lavo lavi lava laviamo lavate lavano', {
     subjects: PERSON,
     objects: ['person', 'animal', 'clothes', 'thing', 'toy', 'vehicle', 'body'],
+    countObjects: true,
   }),
   ...verb('pulire', 'pulisco pulisci pulisce puliamo pulite puliscono', {
     subjects: PERSON,
     objects: ['thing', 'toy', 'vehicle', 'place', 'clothes'],
+    notObjects: ['festa'],
+    countObjects: true,
   }),
   ...verb('cercare', 'cerco cerchi cerca cerchiamo cercate cercano', {
     subjects: ANIMATE,
@@ -882,6 +952,7 @@ const VERBS: IVerb[] = [
       'animal',
       'music',
     ],
+    concreteObjects: true,
   }),
   ...verb(
     'nascondere',
@@ -889,6 +960,7 @@ const VERBS: IVerb[] = [
     {
       subjects: ANIMATE,
       objects: ['toy', 'thing', 'food', 'clothes', 'reading'],
+      concreteObjects: true,
     },
   ),
   ...verb('leggere', 'leggo leggi legge leggiamo leggete leggono', {
@@ -899,10 +971,12 @@ const VERBS: IVerb[] = [
   ...verb('sfogliare', 'sfoglio sfogli sfoglia sfogliamo sfogliate sfogliano', {
     subjects: PERSON,
     objects: ['reading'],
+    onlyObjects: ['libro', 'giornale', 'quaderno', 'fumetto'],
   }),
   ...verb('scrivere', 'scrivo scrivi scrive scriviamo scrivete scrivono', {
     subjects: PERSON,
     objects: ['reading'],
+    notObjects: ['quaderno', 'mappa'],
     intransitive: true,
   }),
   ...verb(
@@ -946,6 +1020,7 @@ const VERBS: IVerb[] = [
   ...verb('colorare', 'coloro colori colora coloriamo colorate colorano', {
     subjects: PERSON,
     objects: ['thing', 'toy'],
+    countObjects: true,
     intransitive: true,
   }),
   ...verb('suonare', 'suono suoni suona suoniamo suonate suonano', {
@@ -963,6 +1038,7 @@ const VERBS: IVerb[] = [
     {
       subjects: PERSON,
       objects: ['person', 'animal', 'toy'],
+      cuddlyToys: true,
     },
   ),
   ...verb('baciare', 'bacio baci bacia baciamo baciate baciano', {
@@ -975,6 +1051,7 @@ const VERBS: IVerb[] = [
     {
       subjects: PERSON,
       objects: ['person', 'animal', 'toy'],
+      cuddlyToys: true,
     },
   ),
   ...verb(
@@ -988,6 +1065,7 @@ const VERBS: IVerb[] = [
   ...verb('cullare', 'cullo culli culla culliamo cullate cullano', {
     subjects: PERSON,
     objects: ['person', 'animal', 'toy'],
+    cuddlyToys: true,
   }),
   ...verb(
     'pettinare',
@@ -995,11 +1073,13 @@ const VERBS: IVerb[] = [
     {
       subjects: PERSON,
       objects: ['person', 'animal', 'toy'],
+      cuddlyToys: true,
     },
   ),
   ...verb('vestire', 'vesto vesti veste vestiamo vestite vestono', {
     subjects: PERSON,
     objects: ['person', 'toy'],
+    cuddlyToys: true,
   }),
   ...verb('chiamare', 'chiamo chiami chiama chiamiamo chiamate chiamano', {
     subjects: PERSON,
@@ -1052,11 +1132,13 @@ const VERBS: IVerb[] = [
   ...verb('visitare', 'visito visiti visita visitiamo visitate visitano', {
     subjects: PERSON,
     objects: ['place', 'person'],
+    notObjects: ['bagno', 'cucina', 'festa'],
   }),
   ...verb('sognare', 'sogno sogni sogna sogniamo sognate sognano', {
     subjects: PERSON,
     objects: ['person', 'animal', 'place', 'food', 'toy', 'vehicle'],
     intransitive: true,
+    noPlace: true,
   }),
   ...verb('annusare', 'annuso annusi annusa annusiamo annusate annusano', {
     subjects: ANIMATE,
@@ -1065,18 +1147,63 @@ const VERBS: IVerb[] = [
   ...verb('mordere', 'mordo mordi morde mordiamo mordete mordono', {
     subjects: ANIMATE,
     objects: ['food', 'toy'],
+    countObjects: true,
   }),
   ...verb('tagliare', 'taglio tagli taglia tagliamo tagliate tagliano', {
     subjects: PERSON,
     objects: ['food'],
+    notObjects: [
+      'olio',
+      'miele',
+      'pappa',
+      'marmellata',
+      'riso',
+      'mais',
+      'pepe',
+      'cacao',
+      'uva',
+    ],
   }),
   ...verb('pelare', 'pelo peli pela peliamo pelate pelano', {
     subjects: PERSON,
     objects: ['food'],
+    onlyObjects: ['frutto', 'verdura'],
+  }),
+  ...verb('cuocere', 'cuocio cuoci cuoce cuociamo cuocete cuociono', {
+    subjects: PERSON,
+    objects: ['food'],
+    onlyObjects: [
+      'verdura',
+      'pasta',
+      'riso',
+      'uovo',
+      'pizza',
+      'torta',
+      'biscotto',
+      'minestra',
+      'zuppa',
+      'polpetta',
+      'frittata',
+      'cece',
+    ],
   }),
   ...verb('cucinare', 'cucino cucini cucina cuciniamo cucinate cucinano', {
     subjects: PERSON,
     objects: ['food'],
+    onlyObjects: [
+      'verdura',
+      'pasta',
+      'riso',
+      'uovo',
+      'pizza',
+      'torta',
+      'biscotto',
+      'minestra',
+      'zuppa',
+      'polpetta',
+      'frittata',
+      'cece',
+    ],
     intransitive: true,
   }),
   ...verb(
@@ -1098,10 +1225,12 @@ const VERBS: IVerb[] = [
   ...verb('tirare', 'tiro tiri tira tiriamo tirate tirano', {
     subjects: PERSON,
     objects: ['toy'],
+    notObjects: ['altalena', 'scivolo'],
   }),
   ...verb('lanciare', 'lancio lanci lancia lanciamo lanciate lanciano', {
     subjects: PERSON,
     objects: ['toy'],
+    notObjects: ['altalena', 'scivolo'],
   }),
   ...verb('spingere', 'spingo spingi spinge spingiamo spingete spingono', {
     subjects: PERSON,
@@ -1119,6 +1248,7 @@ const VERBS: IVerb[] = [
       'vehicle',
       'music',
     ],
+    concreteObjects: true,
   }),
   ...verb(
     'indossare',
@@ -1134,6 +1264,8 @@ const VERBS: IVerb[] = [
     {
       subjects: PERSON,
       objects: ['plant', 'food', 'toy'],
+      notObjects: ['gelato', 'pizza', 'torta', 'minestra', 'zuppa', 'frittata'],
+      countObjects: true,
     },
   ),
   ...verb('piantare', 'pianto pianti pianta piantiamo piantate piantano', {
@@ -1151,18 +1283,52 @@ const VERBS: IVerb[] = [
   ...verb('potare', 'poto poti pota potiamo potate potano', {
     subjects: PERSON,
     objects: ['plant'],
+    onlyObjects: ['albero', 'melo', 'palma', 'rosa'],
   }),
   ...verb('aprire', 'apro apri apre apriamo aprite aprono', {
     subjects: PERSON,
     objects: ['thing', 'reading'],
+    onlyObjects: [
+      'porta',
+      'finestra',
+      'scatola',
+      'borsa',
+      'zaino',
+      'ombrello',
+      'barattolo',
+      'libro',
+      'quaderno',
+      'giornale',
+      'lettera',
+      'fumetto',
+    ],
   }),
   ...verb('chiudere', 'chiudo chiudi chiude chiudiamo chiudete chiudono', {
     subjects: PERSON,
     objects: ['thing', 'reading'],
+    onlyObjects: [
+      'porta',
+      'finestra',
+      'scatola',
+      'borsa',
+      'zaino',
+      'ombrello',
+      'barattolo',
+      'libro',
+      'quaderno',
+      'giornale',
+      'lettera',
+      'fumetto',
+    ],
   }),
   ...verb('usare', 'uso usi usa usiamo usate usano', {
     subjects: PERSON,
     objects: ['thing', 'toy', 'vehicle'],
+  }),
+  ...verb('dare', 'do dai dà diamo date danno', {
+    subjects: PERSON,
+    objects: ['food', 'drink', 'toy', 'thing', 'reading', 'clothes'],
+    concreteObjects: true,
   }),
   ...verb(
     'costruire',
@@ -1170,6 +1336,17 @@ const VERBS: IVerb[] = [
     {
       subjects: PERSON,
       objects: ['thing', 'toy', 'vehicle', 'place'],
+      notObjects: [
+        'mare',
+        'lago',
+        'montagna',
+        'città',
+        'campagna',
+        'bosco',
+        'prato',
+        'festa',
+        'classe',
+      ],
     },
   ),
   ...verb('pilotare', 'piloto piloti pilota pilotiamo pilotate pilotano', {
@@ -1189,6 +1366,7 @@ const VERBS: IVerb[] = [
     objects: [],
     intransitive: true,
     with: PERSON,
+    onlyAnimals: ['uccello'],
   }),
   ...verb('correre', 'corro corri corre corriamo correte corrono', {
     subjects: ANIMATE,
@@ -1196,8 +1374,14 @@ const VERBS: IVerb[] = [
     intransitive: true,
     motion: true,
     with: ANIMATE,
+    notAnimals: [...NOT_WALKING, 'lumaca', 'tartaruga'],
   }),
   ...verb('dormire', 'dormo dormi dorme dormiamo dormite dormono', {
+    subjects: ANIMATE,
+    objects: [],
+    intransitive: true,
+  }),
+  ...verb('vivere', 'vivo vivi vive viviamo vivete vivono', {
     subjects: ANIMATE,
     objects: [],
     intransitive: true,
@@ -1212,6 +1396,7 @@ const VERBS: IVerb[] = [
     objects: [],
     intransitive: true,
     with: PERSON,
+    noPlace: true,
   }),
   ...verb(
     'sorridere',
@@ -1220,18 +1405,39 @@ const VERBS: IVerb[] = [
       subjects: PERSON,
       objects: [],
       intransitive: true,
+      noPlace: true,
     },
   ),
   ...verb('saltare', 'salto salti salta saltiamo saltate saltano', {
     subjects: ANIMATE,
     objects: [],
     intransitive: true,
+    // "Il delfino salta" yes.
+    notAnimals: [
+      ...NOT_WALKING.filter((a) => a !== 'delfino'),
+      'lumaca',
+      'tartaruga',
+      'elefante',
+    ],
   }),
   ...verb('nuotare', 'nuoto nuoti nuota nuotiamo nuotate nuotano', {
     subjects: ANIMATE,
     objects: [],
     intransitive: true,
     with: ANIMATE,
+    onlyAnimals: [
+      'pesce',
+      'delfino',
+      'balena',
+      'foca',
+      'polpo',
+      'granchio',
+      'tartaruga',
+      'rana',
+      'anatra',
+      'oca',
+      'pinguino',
+    ],
   }),
   ...verb('ballare', 'ballo balli balla balliamo ballate ballano', {
     subjects: PERSON,
@@ -1247,6 +1453,7 @@ const VERBS: IVerb[] = [
       objects: [],
       intransitive: true,
       with: ANIMATE,
+      notAnimals: NOT_WALKING,
     },
   ),
   ...verb('parlare', 'parlo parli parla parliamo parlate parlano', {
@@ -1335,7 +1542,7 @@ const ADJECTIVES: IAdjective[] = [
     'vehicle',
     'place',
     'body',
-  ]),
+  ], { predicateOnly: PERSON }),
   ...adj('sporco sporca sporchi sporche', [
     'person',
     'animal',
@@ -1345,7 +1552,7 @@ const ADJECTIVES: IAdjective[] = [
     'vehicle',
     'place',
     'body',
-  ]),
+  ], { predicateOnly: PERSON }),
   ...adj('bagnato bagnata bagnati bagnate', [
     'person',
     'animal',
@@ -1388,7 +1595,9 @@ const ADJECTIVES: IAdjective[] = [
   ...adj('caldo calda caldi calde', ['food', 'drink', 'place', 'nature']),
   ...adj('freddo fredda freddi fredde', ['food', 'drink', 'place', 'nature']),
   ...adj('fresco fresca freschi fresche', ['food', 'drink']),
-  ...adj('maturo matura maturi mature', ['food']),
+  ...adj('maturo matura maturi mature', ['food'], {
+    onlyNouns: ['frutto', 'verdura'],
+  }),
   ...adj('gustoso gustosa gustosi gustose', ['food']),
 
   // Colors
@@ -1396,13 +1605,13 @@ const ADJECTIVES: IAdjective[] = [
   ...adj('giallo gialla gialli gialle', COLORFUL),
   ...adj('nero nera neri nere', COLORFUL),
   ...adj('bianco bianca bianchi bianche', COLORFUL),
-  ...adj('azzurro azzurra azzurri azzurre', COLORFUL),
+  ...adj('azzurro azzurra azzurri azzurre', PLAIN_COLORFUL),
   ...adj('verde verdi', COLORFUL),
   ...adj('arancione arancioni', COLORFUL),
-  ...adj('blu', COLORFUL),
+  ...adj('blu', PLAIN_COLORFUL),
   ...adj('rosa', COLORFUL),
-  ...adj('viola', COLORFUL),
-  ...adj('lilla', COLORFUL),
+  ...adj('viola', PLAIN_COLORFUL),
+  ...adj('lilla', PLAIN_COLORFUL),
 
   // Possessives
   ...possessive('mio mia miei mie', 1, 's'),
@@ -1448,8 +1657,8 @@ const ARTICLES: IArticle[] = [
 const PRONOUNS: IPronoun[] = [
   pronoun('io', 1, 's', 'subject'),
   pronoun('tu', 2, 's', 'subject'),
-  pronoun('lui', 3, 's', 'subject'),
-  pronoun('lei', 3, 's', 'subject'),
+  pronoun('lui', 3, 's', 'subject', 'm'),
+  pronoun('lei', 3, 's', 'subject', 'f'),
   pronoun('noi', 1, 'p', 'subject'),
   pronoun('voi', 2, 'p', 'subject'),
   pronoun('loro', 3, 'p', 'subject'),
@@ -1469,21 +1678,22 @@ const ADVERBS: IAdverb[] = [
   adverb('piano', 'manner'),
   adverb('bene', 'manner'),
   adverb('così', 'manner'),
-  adverb('sempre', 'time'),
+  adverb('sempre', 'frequency'),
   adverb('oggi', 'time'),
   adverb('ora', 'time'),
   adverb('adesso', 'time'),
   adverb('domani', 'time'),
   adverb('stasera', 'time'),
   adverb('presto', 'time'),
-  adverb('ancora', 'time'),
-  adverb('spesso', 'time'),
+  adverb('ancora', 'frequency'),
+  adverb('spesso', 'frequency'),
   // No tag: at the end of a sentence it sounds wrong ("trova un dottore già")
   adverb('già'),
   adverb('qui', 'place'),
   adverb('qua', 'place'),
   adverb('lì', 'place'),
   adverb('là', 'place'),
+  adverb('giù', 'position'),
   adverb('insieme', 'together'),
   adverb('non', 'negation'),
   adverb('mai'),
@@ -1501,8 +1711,12 @@ const PREPOSITIONS = functionWords(
 );
 
 const INTERJECTIONS: IInterjection[] = [
-  ...interjections('ciao ehi evviva salve buongiorno buonanotte', true),
-  ...interjections('oh olè urrà miao bau muu cip'),
+  ...interjections('ciao ehi evviva urrà salve buongiorno buonanotte', true),
+  ...interjections('oh olè uffa'),
+  ...interjections('miao bau muu cip').map((w) => ({
+    ...w,
+    animalSound: true,
+  })),
 ];
 
 // ---------------------------------------------------------------------------

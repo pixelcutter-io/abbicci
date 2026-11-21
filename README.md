@@ -2,7 +2,7 @@
 
 React app for learning to read: Italian words and sentences written only with the letters the child already knows.
 
-Italian first graders learn the vowels and then one consonant at a time (M, then P, L, T…). The parent selects the letters the child has learned so far, vowels included, and Abbiccì shows — one at a time, in very large letters — real Italian words and meaningful sentences that use **only those letters** (an accented vowel counts as its plain vowel: _ù_ needs _u_).
+Italian first graders learn the vowels and then one consonant at a time, in the order each teacher chooses. The parent selects the letters the child has learned so far, vowels included, and Abbiccì shows — one at a time, in very large letters — real Italian words and meaningful sentences that use **only those letters** (an accented vowel counts as its plain vowel: _ù_ needs _u_).
 
 With just the M you already get sentences like _Mamma mi ama_, _Emma ama Mimmo_, _Io e Mia amiamo mamma_, _Mimì è mia_.
 
@@ -10,7 +10,7 @@ Everything runs in the browser: no backend, no accounts, settings are stored in 
 
 ## Features
 
-- Three levels: **Parole** (words), **Frasi** (2–3 word sentences), **Frasi lunghe** (4–6 words).
+- Three levels: **Parole** (words), **Frasi** (2–4 word sentences), **Frasi lunghe** (5–7 words).
 - Big **Ancora!** button: never the same item twice in a row (and it avoids the last 12 when possible). The right arrow key works too.
 - **Case button** (icon) to switch between uppercase (default) and lowercase.
 - **sil·la·be** button to show the words split in syllables (off by default). The `Syllables` component draws a small dot between syllables (mam·ma) instead of typing a hyphen, so the text has no punctuation and a word never wraps in the middle. The split follows the Italian school rules (`src/utils/syllables.ts`): double consonants split (mam-ma), clusters that can start a word stay together (pa-sta), digraphs never split (fi-glio), diphthongs stay together and hiatuses split (pa-e-se). Words whose stress breaks a diphthong (mi-o, zi-a) are listed as exceptions.
@@ -53,7 +53,7 @@ Then open the URL printed by Vite (usually http://localhost:5173).
 src/
   components/   One folder per component: Flex, Typo, Button, Toggle, Icon,
                 Logo, Reader, SegmentControl (+ LevelPicker),
-                Settings (+ Letters, Stats), Layout (Header, Footer)
+                Settings (+ Letters), Layout (Header, Footer)
   contexts/     SettingsProvider: settings shared by the whole app
   constants/    Keyboard keys, storage key
   data/
@@ -90,7 +90,7 @@ Because the routes are client-side, the host must serve `index.html` for every p
 6. First letter uppercase, no punctuation.
 7. Each verb declares who can do it and what it can act on, so the app never says _il tavolo mangia la mela_.
 
-The same template code is used both to pick a random sentence and to enumerate every possible sentence (to count them and to avoid repetitions). When a template has more than 1,500 combinations, the panel shows "più di …" instead of an exact number.
+Sentences come from random runs: a random template filled with random choices. The reader avoids the last 12 items shown.
 
 If a level has no possible sentence, the app shows a gentle message for the parent (_Aggiungi un'altra lettera per avere frasi_).
 

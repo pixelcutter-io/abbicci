@@ -27,6 +27,9 @@ const NOT_ALIVE: TNounKind[] = ANY_KIND.filter(
   (kind) => kind !== 'person' && kind !== 'animal',
 );
 
+/** People and animals: "Pippo e il gatto" yes, "il museo e la favola" no. */
+const ALIVE: TNounKind[] = ['person', 'animal'];
+
 const CAN_BE_SOMEWHERE: TNounKind[] = [
   'person',
   'animal',
@@ -44,7 +47,7 @@ const CAN_BE_SOMEWHERE: TNounKind[] = [
 /**
  * Sentence templates. The generator fills each slot with words that only use
  * the chosen letters, respecting agreement and meaning.
- * Sentences with 2-3 words go to the "Frasi" level, 4-6 words to "Frasi lunghe":
+ * Sentences with 2-4 words go to the "Frasi" level, 5-7 words to "Frasi lunghe":
  * the same template can produce sentences for both levels.
  */
 export const TEMPLATES: ITemplate[] = [
@@ -60,7 +63,7 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pvo',
-    pattern: 'io/tu/noi/voi [verbo] [oggetto]',
+    pattern: 'io/tu/lui/lei/noi/voi [verbo] [oggetto]',
     slots: [
       { slot: 'pronoun' },
       { slot: 'verb', use: 'transitive' },
@@ -182,7 +185,7 @@ export const TEMPLATES: ITemplate[] = [
 
   {
     id: 'svoTime',
-    pattern: '[soggetto] [verbo] [oggetto] oggi/sempre...',
+    pattern: '[soggetto] [verbo] [oggetto] oggi/domani...',
     slots: [
       { slot: 'subject' },
       { slot: 'verb', use: 'transitive' },
@@ -199,7 +202,8 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pv',
-    pattern: 'io/tu/noi/voi [verbo]',
+    pattern: 'io/tu/lui/lei/noi/voi [verbo]',
+    weight: 0.3,
     slots: [{ slot: 'pronoun' }, { slot: 'verb', use: 'intransitive' }],
   },
   {
@@ -208,7 +212,7 @@ export const TEMPLATES: ITemplate[] = [
     slots: [
       { slot: 'subject' },
       { slot: 'verb', use: 'intransitive' },
-      { slot: 'adverb', tags: ['manner', 'time', 'place'] },
+      { slot: 'adverb', tags: ['manner', 'time', 'frequency', 'place'] },
     ],
   },
   {
@@ -228,7 +232,7 @@ export const TEMPLATES: ITemplate[] = [
       { slot: 'word', text: 'e' },
       { slot: 'subject', number: 's', join: true },
       { slot: 'verb', use: 'intransitive' },
-      { slot: 'adverb', tags: ['together', 'manner', 'time'] },
+      { slot: 'adverb', tags: ['together', 'manner', 'time', 'frequency'] },
     ],
   },
   {
@@ -242,7 +246,7 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pWith',
-    pattern: 'io/tu [verbo] con [compagno]',
+    pattern: 'io/tu/lui/lei [verbo] con [compagno]',
     slots: [
       { slot: 'pronoun', numbers: ['s'] },
       { slot: 'verb', use: 'with' },
@@ -268,7 +272,7 @@ export const TEMPLATES: ITemplate[] = [
       { slot: 'word', text: 'e' },
       { slot: 'subject', number: 's', join: true },
       { slot: 'verb', use: 'intransitive' },
-      { slot: 'adverb', tags: ['together', 'manner', 'time'] },
+      { slot: 'adverb', tags: ['together', 'manner', 'time', 'frequency'] },
     ],
   },
 
@@ -312,7 +316,7 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pCopPlace',
-    pattern: 'io/tu/noi/voi sono/sei... [luogo]',
+    pattern: 'io/tu/lui/lei/noi/voi sono/sei... [luogo]',
     slots: [{ slot: 'pronoun' }, { slot: 'copula' }, { slot: 'place' }],
   },
 
@@ -327,7 +331,7 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pvPlace',
-    pattern: 'io/tu/noi/voi [verbo] [luogo]',
+    pattern: 'io/tu/lui/lei/noi/voi [verbo] [luogo]',
     slots: [
       { slot: 'pronoun' },
       { slot: 'verb', use: 'intransitive' },
@@ -345,6 +349,36 @@ export const TEMPLATES: ITemplate[] = [
       { slot: 'place' },
     ],
   },
+  {
+    id: 'sCopAdv',
+    pattern: '[soggetto] è qui/qua/lì/là/giù',
+    slots: [
+      { slot: 'subject', kinds: CAN_BE_SOMEWHERE },
+      { slot: 'copula' },
+      { slot: 'adverb', tags: ['place', 'position'] },
+    ],
+  },
+  {
+    id: 'ssCopAdv',
+    pattern: '[soggetto] e [soggetto] sono qui/qua/lì/là/giù',
+    slots: [
+      { slot: 'subject', number: 's', kinds: CAN_BE_SOMEWHERE },
+      { slot: 'word', text: 'e' },
+      { slot: 'subject', number: 's', join: true, kinds: CAN_BE_SOMEWHERE },
+      { slot: 'copula' },
+      { slot: 'adverb', tags: ['place', 'position'] },
+    ],
+  },
+  {
+    id: 'pCopAdv',
+    pattern: 'io/tu/lui/lei/noi/voi sono/sei... qui/qua/lì/là/giù',
+    weight: 0.3,
+    slots: [
+      { slot: 'pronoun' },
+      { slot: 'copula' },
+      { slot: 'adverb', tags: ['place', 'position'] },
+    ],
+  },
 
   // "Essere" + adjective or noun
   {
@@ -358,7 +392,8 @@ export const TEMPLATES: ITemplate[] = [
   },
   {
     id: 'pCopAdj',
-    pattern: 'io/tu/noi/voi sono/sei... [aggettivo]',
+    pattern: 'io/tu/lui/lei/noi/voi sono/sei... [aggettivo]',
+    weight: 0.3,
     slots: [{ slot: 'pronoun' }, { slot: 'copula' }, { slot: 'predicate' }],
   },
   {
@@ -408,11 +443,24 @@ export const TEMPLATES: ITemplate[] = [
   {
     id: 'greet',
     pattern: 'ciao/ehi... [nome]',
+    weight: 0.3,
     slots: [{ slot: 'greeting' }, { slot: 'vocative' }],
   },
   {
     id: 'ecco',
     pattern: 'ecco [nome]',
+    weight: 0.3,
     slots: [{ slot: 'word', text: 'ecco' }, { slot: 'noun' }],
+  },
+
+  // Nouns only: the first reading with letters that give no verb
+  {
+    id: 'nounPair',
+    pattern: '[persona/animale] e [persona/animale]',
+    slots: [
+      { slot: 'subject', number: 's', kinds: ALIVE },
+      { slot: 'word', text: 'e' },
+      { slot: 'subject', number: 's', join: true, kinds: ALIVE },
+    ],
   },
 ];

@@ -16,6 +16,8 @@ export interface IReader {
   /** Show the words split in syllables (mam-ma). */
   syllables?: boolean;
   emptyMessage: string;
+  /** Small text under the button: "Con queste lettere ci sono solo 2 frasi". */
+  note?: string;
   /** Shows the next word or sentence (the "Ancora!" button). */
   onNext: () => void;
   className?: string;
@@ -33,6 +35,7 @@ const Reader = (props: IReader) => {
     extraSpacing = false,
     syllables = false,
     emptyMessage,
+    note,
     onNext,
     className,
   } = props;
@@ -105,6 +108,20 @@ const Reader = (props: IReader) => {
     );
   };
 
+  const renderNote = () => {
+    if (!note) return null;
+    return (
+      <Typo
+        text={note}
+        tag={'p'}
+        size={'md'}
+        align={'center'}
+        color={'dark-2'}
+        balancer={true}
+      />
+    );
+  };
+
   return (
     <Flex
       className={cx(s.reader, className)}
@@ -117,6 +134,7 @@ const Reader = (props: IReader) => {
     >
       {renderStage()}
       {renderNext()}
+      {renderNote()}
     </Flex>
   );
 };

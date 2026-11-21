@@ -5,7 +5,7 @@ import Reader from '@/components/Reader';
 import { Keyboard } from '@/constants';
 import useSettings from '@/hooks/useSettings';
 import type { TLevel } from '@/types/data';
-import { nextItem } from '@/utils/generator';
+import { countFewSentences, nextItem } from '@/utils/generator';
 
 /** How many recent words or sentences to avoid when pressing "Ancora!". */
 const HISTORY_SIZE = 12;
@@ -36,6 +36,12 @@ const Home = () => {
   // start again with a fresh item. "Ancora!" then moves on from there.
   const start = useMemo(
     () => startReading(lettersKey.split(''), level),
+    [lettersKey, level],
+  );
+  // Few sentences with these letters: say it under the button.
+  const few = useMemo(
+    () =>
+      level === 'words' ? null : countFewSentences(lettersKey.split(''), level),
     [lettersKey, level],
   );
   const [advanced, setAdvanced] = useState<IReading | null>(null);
@@ -75,7 +81,16 @@ const Home = () => {
         uppercase={uppercase}
         extraSpacing={extraSpacing}
         syllables={syllables}
-        emptyMessage={t(`reader.empty.${level}`)}
+        emptyMessage={
+          letters.length === 0
+            ? t('reader.noLetters')
+            : t(`reader.empty.${level}`)
+        }
+        note={
+          few && level !== 'words'
+            ? t(`reader.few.${level}`, { count: few })
+            : undefined
+        }
         onNext={showNext}
       />
     </Layout>
